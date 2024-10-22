@@ -1,0 +1,24 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "Bank system",
+  "main": "index.js",
+  "scripts": {
+    "dev": "parcel index.html",
+    "build": "parcel build index.html"
+  },
+  "keywords": [],
+  "author": "Vera",
+  "license": "ISC",
+  "dependencies": {
+    "chart.js": "^4.4.2",
+    "choices.js": "^10.2.0",
+    "just-validate": "^4.3.0",
+    "parcel": "^2.11.0",
+    "redom": "^4.0.0"
+  },
+  "devDependencies": {
+    "@parcel/transformer-sass": "^2.11.0",
+    "cypress": "^13.7.1"
+  }
+}
