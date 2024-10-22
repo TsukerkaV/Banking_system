@@ -1,0 +1,14 @@
+.--balance__table{
+    cursor: auto;
+}
+.--balance__chart-wrapper{
+    max-width: 1250px;
+    /* height: 300px; */
+    width: 100%;
+    margin-bottom: 50px;
+}
+.chart__canvas{
+    width: 1000px;
+    height: 300px;
+    /* border: 1px solid var(--black); */
+}

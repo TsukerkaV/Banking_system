@@ -1,0 +1,26 @@
+.banks__map{
+    max-width: 1340px;
+}
+.banks__title{
+    margin: 0;
+    font-weight: 700;
+    font-size: 34px;
+    margin-bottom: 50px;
+    color: var(--black);
+}
+.banks__section{
+    margin-bottom: 70px;
+}
+.map__wrapper{
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+@media(max-width:600px){
+    .title{
+        font-size: 24px;
+        margin: 0 0 20px;
+    }
+    
+}

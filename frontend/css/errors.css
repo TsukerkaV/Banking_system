@@ -1,0 +1,22 @@
+.error{
+    border:1px solid var(--red);
+}
+.error-label{
+    color: var(--red);
+}
+.just-validate-error-label{
+    font-size: 13px;
+    color: var(--red);
+    max-width: 300px;
+}
+.error-box {
+    width: fit-content;
+    padding: 10px 15px;
+    color: #333;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 22px;
+    font-weight: 500;
+    background-color: rgba(240, 253, 255, 0.486);
+    border-radius: 15px;
+    transition: 1s;
+  }

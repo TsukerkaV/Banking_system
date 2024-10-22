@@ -1,0 +1,85 @@
+.form{
+    background-color: var(--grey);
+    max-width: 500px;
+    border-radius: 50px;
+    padding: 50px 70px;
+}
+
+.form-container{
+    display: flex;
+    flex-direction: column; 
+    align-items: center;
+    justify-content: center;
+    min-height: 524px;
+}
+.form__title{
+    margin: 0;
+    margin-bottom: 20px;
+    font-weight: 700;
+    font-size: 28px;
+    text-align: center;
+    line-height: 39.88px;
+    color: var(--black);
+}
+.input__group{
+    display: flex;
+    /* gap: 10px; */
+    align-items: center;
+    margin-bottom: 20px;
+    justify-content: right;
+}
+.input__wrapper{
+    display: flex;
+    flex-direction: column;
+
+}
+.input__label{
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 18px;
+    color:var(--black) ;
+    margin-right: 10px;
+
+}
+.form__input{
+    max-width: 300px;
+    width: 100%;
+    padding: 5px;
+    border: 1px solid var(--border-gray);
+    border-radius: 7px;
+    color: var(--border-gray);
+}
+.form__input:focus-visible{
+    outline: none;
+}
+.form-btn{
+    background-color: var(--primary);
+    color: var(--background);
+    transition : background-color .3s ease-in-out;
+}
+.form-btn:hover{
+    background-color: var(--hover-blue);
+}
+.form-btn:focus{
+    background-color: var(--focus-blue);
+}
+.form-btn:active{
+    background-color: var(--focus-blue);
+}
+@media(max-width: 690px){
+    .--coin__logo-login{
+        margin-left: 50px;
+    }
+
+}
+@media(max-width: 400px){
+    .form__title{
+        font-size: 20px;
+        margin-bottom: 15px;
+        line-height: normal;
+    }
+    .form{
+        padding: 50px 50px;
+    }
+    
+}

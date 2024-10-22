@@ -1,0 +1,25 @@
+/* .custom-select {
+  position: relative;
+  display: inline-block;
+}
+
+.custom-select select {
+  display: none;
+}
+
+.custom-select:after {
+  content: '\25BC';
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.custom-select select:focus + .custom-select:after {
+  color: #888;
+}
+
+.custom-select select:focus {
+  background-color: #f4f4f4;
+} */
