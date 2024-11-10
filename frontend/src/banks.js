@@ -16,6 +16,7 @@ export async function renderMapOfBanks(token){
     $map.style.width = '100%';
     $map.style.height = '728px';
     let banks = await getBanks();
+    console.log(banks);
     var myMap;
     ymaps.ready(init);
     
@@ -24,7 +25,7 @@ export async function renderMapOfBanks(token){
             center:[55.76, 37.64], // Москва
             zoom:10
         });
-        for(const bank of banks.payload){
+        for(const bank of banks.data){
             let placemark = new ymaps.Placemark([bank.lat, bank.lon],{},{});
             myMap.geoObjects.add(placemark);
         }

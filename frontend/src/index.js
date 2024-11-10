@@ -60,6 +60,7 @@ export async function authorization(login, password){
     })
     let data = await response.json()
     throwErr(response, data);
+    //console.log(data.token);
     return data
     }
     catch(err){
@@ -182,9 +183,11 @@ export async function exchangeCurrency(from, to, amount, token) {
       authorization: `Basic ${token}`,
     },
   }).then((res) => res.json());
-  }catch(err){
-    catchErr(err);
+  } catch (err) {
+  console.error('Error during currency exchange:', err);
+  catchErr(err);  // Логирование ошибок
   }
+
 }
 export function getDate(data) {
   let dat = new Date(data);

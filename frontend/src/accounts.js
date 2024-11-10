@@ -5,15 +5,16 @@ import { createDetails } from "./detailAcc";
 import { createLoader } from "./loader";
 import { getDate } from "./index";
 
+
 export async function renderAccount(token) {
 
     let sortFlag = ''
     const accounts = await getAccounts(token);
-    accounts.payload = accounts.payload.sort(function (a, b) {
-        if (a[sortFlag] < b[sortFlag]) return -1;
+    // accounts.payload = accounts.payload.sort(function (a, b) {
+    //     if (a[sortFlag] < b[sortFlag]) return -1;
 
-    })
-    console.log(accounts.payload);
+    // })
+    console.log(accounts.data);
 
     async function createAcc(accounts, token) {
 
@@ -40,16 +41,12 @@ export async function renderAccount(token) {
             const thisAcc = await getAccount(account.account, token);
             const accountCard = el('div', { class: 'account__card' });
             const cardRight = el('div', { class: 'account__card-right' });
-            const cardTitle = el('h3', { class: 'card__title' }, account.account);
+            const cardTitle = el('h3', { class: 'card__title' }, account.account_id);
             const cardBalance = el('p', { class: 'account__balance' }, `${account.balance} ₽`);
             const cardTransaction = el('p', { class: 'account__transaction' }, `Последняя транзакция: `);
             const trDate = el('span', { class: 'account__transaction-date' });
-            if (account.transactions.length > 0 && account.transactions.at(-1).date !== null) {
-                console.log(account.transactions.at(-1).date);
-                trDate.innerHTML = getDate(account.transactions.at(-1).date);
-            } else {
-                trDate.innerHTML = getDate(new Date());
-            }
+
+            trDate.innerHTML = getDate(new Date());
             cardTransaction.append(trDate);
             
             setChildren(cardRight, [cardTitle, cardBalance, cardTransaction]);
@@ -61,7 +58,7 @@ export async function renderAccount(token) {
                 e.preventDefault();
 
                 console.log(thisAcc);
-                createDetails(account.account, token);
+                createDetails(account.account_id, token);
 
             });
 
@@ -86,6 +83,6 @@ export async function renderAccount(token) {
 
 
     }
-    createAcc(accounts.payload, token);
-    document.querySelector('.current').innerHTML = 'Сортировка';
+    createAcc(accounts.data, token);
+    //document.querySelector('.current').innerHTML = 'Сортировка';
 }

@@ -1,234 +1,267 @@
-const express = require('express')
-const cors = require('cors')
-const bodyParser = require('body-parser')
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const { Pool } = require('pg');
+const { formatAmount, generateAccountId, response } = require('./utils.js'); // Подключение утилит
 
-const {
-	readData,
-	writeData,
-	response,
-	makeAccount,
-	pregenerateMineCurrencies,
-	premakeAccounts,
-	formatAmount,
-	generateAccountId,
-	pregenerateHistory
-} = require('./utils.js')
+// Подключение к базе данных PostgreSQL
+const pool = new Pool({
+  user: 'postgres',
+  host: 'localhost',
+  database: 'Bank_system', // Название вашей базы данных
+  password: 'postgres',
+  port: 5432,
+});
 
-const app = express()
-const expressWs = require('express-ws')(app)
-const port = 3000
+const app = express();
+const expressWs = require('express-ws')(app);
+const port = 3000;
 
 const AUTH_DATA = Object.freeze({
-	login: 'developer',
-	password: 'password',
-	token: 'ZGV2ZWxvcGVyOnNraWxsYm94'
-})
+  login: 'developer',
+  password: 'password',
+  token: 'ZGV2ZWxvcGVyOnNraWxsYm94'
+});
 
-const MINE_ACCOUNT = '74213041477477406320783754'
-
-const KNOWN_OTHER_ACCOUNTS = Object.freeze([
-	'61253747452820828268825011',
-	'05168707632801844723808510',
-	'17307867273606026235887604',
-	'27120208050464008002528428',
-	"2222400070000005",
-	"5555341244441115",
-])
-
+const MINE_ACCOUNT = '74213041477477406320783754';
 const KNOWN_CURRENCY_CODES = Object.freeze([
-	'ETH',
-	'BTC',
-	'USD',
-	'EUR',
-	'JPY',
-	'GBP',
-	'AUD',
-	'CAD',
-	'CHF',
-	'CNH',
-	'HKD',
-	'NZD',
-	'RUB',
-	'UAH',
-	'BYR'
-])
+  'ETH', 'BTC', 'USD', 'EUR', 'JPY', 'GBP', 'AUD', 'CAD', 'CHF', 'CNH', 'HKD', 'NZD', 'RUB', 'UAH', 'BYR'
+]);
 
-let currencyFeedSubscribers = []
+let currencyFeedSubscribers = [];
 
-const data = readData()
-
-pregenerateMineCurrencies(data, KNOWN_CURRENCY_CODES)
-premakeAccounts(data, KNOWN_OTHER_ACCOUNTS)
-pregenerateHistory(data, [ MINE_ACCOUNT ], true)
-
-function authCheck(req, res, next) {
-	if ((req.headers.authorization !== `Basic ${AUTH_DATA.token}`)) {
-		res.end(response(null, 'Unauthorized'))
-		return
-	}
-	next()
+// Вспомогательная функция для выполнения запросов к базе данных
+async function queryDB(query, params = []) {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(query, params);
+    return res.rows;
+  } finally {
+    client.release();
+  }
 }
 
-app.use(cors())
-app.use(bodyParser.json())
+// Middleware для проверки авторизации
+function authCheck(req, res, next) {
+  if (req.headers.authorization !== `Basic ${AUTH_DATA.token}`) {
+    res.json({ success: false, error: 'Unauthorized' });
+    return;
+  }
+  next();
+}
 
+// Настройка CORS и JSON парсера
+app.use(cors());
+app.use(bodyParser.json());
+
+// Маршрут проверки работы сервера
 app.get('/', (req, res) => {
-  res.send('Backend is working')
-})
+  res.send('Backend is working');
+});
 
+// Эндпоинт для авторизации
 app.post('/login', (req, res) => {
-	const { login, password } = (req.body || {})
+  const { login, password } = req.body || {};
 
-	if (login === AUTH_DATA.login) {
-		if (password === AUTH_DATA.password) {
-			res.end(response({ token: AUTH_DATA.token }))
-		} else {
-			res.end(response(null, 'Invalid password'))
-		}
-		return
-	}
+  if (login === AUTH_DATA.login && password === AUTH_DATA.password) {
+    res.json({ success: true, token: AUTH_DATA.token });
+  } else {
+    res.json({ success: false, error: 'Invalid login or password' });
+  }
+});
 
-	res.end(response(null, 'No such user'))
-})
+// Эндпоинт для получения аккаунтов
+app.get('/accounts', authCheck, async (req, res) => {
+  try {
+    const myAccounts = await queryDB("SELECT * FROM accounts WHERE mine = true");
+    res.json({ success: true, data: myAccounts });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
 
-app.get('/accounts', authCheck, (req, res) => {
-	const myAccounts = Object.values(data.accounts).filter(account => account.mine).map(account => ({
-		...account,
-		transactions: [ account.transactions[ account.transactions.length - 1 ] ].filter(Boolean)
-	}))
-	res.end(response(myAccounts))
-})
+// Эндпоинт для получения конкретного аккаунта по ID
+app.get('/account/:id', authCheck, async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Получаем информацию о счете
+    const account = await queryDB("SELECT * FROM accounts WHERE account_id = $1", [id]);
+    
+    // Проверка, существует ли аккаунт
+    if (account.length === 0) {
+      return res.json({ success: false, error: 'No such account' });
+    }
 
-app.get('/account/:id', authCheck, (req, res) => {
-	const myAccount = data.accounts[req.params.id]
-	if (myAccount) {
-		res.end(response(myAccount))
-		return
-	}
-	res.end(response(null, 'No such account'))
-})
+    // Получаем все транзакции для указанного аккаунта
+    const transactions = await queryDB(
+      "SELECT * FROM transactions WHERE from_account = $1 OR to_account = $1 ORDER BY date",
+      [id]
+    );
 
-app.post('/create-account', authCheck, (req, res) => {
-	const newAccount = makeAccount(true);
-	data.accounts[newAccount.account] = newAccount;
-	writeData(data)
-	res.end(response(newAccount))
-})
+    // Формируем ответ в нужном формате
+    const responseData = {
+      account_id: account[0].account_id,
+      balance: account[0].balance,
+      mine: account[0].mine,
+      transactions: transactions.map(tx => ({
+        date: tx.date,
+        from: tx.from_account,
+        to: tx.to_account,
+        amount: tx.amount
+      }))
+    };
 
-app.post('/transfer-funds', authCheck, (req, res) => {
-	const { from, to, amount: rawAmount } = (req.body || {})
-	const fromAccount = data.accounts[from]
-	let toAccount = data.accounts[to]
-	const amount = Number(rawAmount)
+    res.json({ success: true, data: responseData });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
 
-	if (!fromAccount || !fromAccount.mine) {
-		res.end(response(null, 'Invalid account from'))
-		return
-	}
-	
-	if (!toAccount) {
-		if (Math.random() < 0.25) {
-			toAccount = makeAccount(false, toAccount)
-			data.accounts[to] = toAccount
-		} else {
-			res.end(response(null, 'Invalid account to'))
-			return
-		}
-	}
 
-	if (isNaN(amount) || amount < 0) {
-		res.end(response(null, 'Invalid amount'))
-		return
-	}
+// Эндпоинт для создания нового аккаунта
+app.post('/create-account', authCheck, async (req, res) => {
+  const newAccountId = generateAccountId();
+  try {
+    await queryDB("INSERT INTO accounts (account_id, balance, mine) VALUES ($1, $2, $3)", [newAccountId, 0, true]);
+    res.json({ success: true, data: { account_id: newAccountId, balance: 0, mine: true } });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
 
-	if (fromAccount.balance - amount < 0) {
-		res.end(response(null, 'Overdraft prevented'))
-		return
-	}
+// Эндпоинт для перевода средств между аккаунтами
+app.post('/transfer-funds', authCheck, async (req, res) => {
+  const { from, to, amount: rawAmount } = req.body;
+  const amount = Number(rawAmount);
 
-	fromAccount.balance -= amount;
-	toAccount.balance += amount;
+  try {
+    const fromAccount = await queryDB("SELECT * FROM accounts WHERE account_id = $1 AND mine = true", [from]);
+    const toAccount = await queryDB("SELECT * FROM accounts WHERE account_id = $1", [to]);
 
-	const transactionTime = (new Date()).toISOString()
-	fromAccount.transactions.push({
-		date: transactionTime,
-		from: fromAccount.account,
-		to: toAccount.account,
-		amount,
-	})
-	toAccount.transactions.push({
-		date: transactionTime,
-		from: fromAccount.account,
-		to: toAccount.account,
-		amount,
-	})
-	
-	writeData(data)
+    if (fromAccount.length === 0) {
+      return res.json({ success: false, error: 'Invalid account from' });
+    }
 
-	res.end(response(fromAccount))
-})
+    if (toAccount.length === 0) {
+      return res.json({ success: false, error: 'Invalid account to' });
+    }
 
+    if (fromAccount[0].balance < amount) {
+      return res.json({ success: false, error: 'Overdraft prevented' });
+    }
+
+    await queryDB("BEGIN");
+
+    await queryDB("UPDATE accounts SET balance = balance - $1 WHERE account_id = $2", [amount, from]);
+    await queryDB("UPDATE accounts SET balance = balance + $1 WHERE account_id = $2", [amount, to]);
+    await queryDB(
+      "INSERT INTO transactions (date, from_account, to_account, amount) VALUES ($1, $2, $3, $4)",
+      [new Date().toISOString(), from, to, amount]
+    );
+
+    await queryDB("COMMIT");
+
+    res.json({ success: true });
+  } catch (error) {
+    await queryDB("ROLLBACK");
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// Эндпоинт для получения всех известных валют
 app.get('/all-currencies', (req, res) => {
-	res.end(response(KNOWN_CURRENCY_CODES))
-})
+  res.json({ success: true, data: KNOWN_CURRENCY_CODES });
+});
 
+// Эндпоинт для WebSocket подписки на обновления валютных курсов
 app.ws('/currency-feed', (ws, req) => {
-	currencyFeedSubscribers.push(ws)
-	ws.on('close', () => {
-		currencyFeedSubscribers = currencyFeedSubscribers.filter(websocket => websocket !== ws)
-	})
-})
+  currencyFeedSubscribers.push(ws);
 
-app.get('/currencies', authCheck, (req, res) => {
-	const myCurrencies = data.mine.currencies || {}
-	res.end(response(myCurrencies))
-})
+  // Устанавливаем интервал для отправки актуальных данных из базы данных
+  const sendCurrencyUpdates = setInterval(async () => {
+    try {
+      // Извлекаем все данные из таблицы exchange_rates
+      const exchangeRates = await queryDB("SELECT currency_pair, rate FROM exchange_rates");
 
-app.post('/currency-buy', authCheck, (req, res) => {
-	const { from, to, amount: rawAmount } = (req.body || {})
-	const myCurrencies = data.mine.currencies || {}
+      // Преобразуем данные в нужный формат для клиента
+      exchangeRates.forEach(rateData => {
+        const [from, to] = rateData.currency_pair.split('/');
+        const dataToSend = {
+          from,
+          to,
+          rate: rateData.rate,
+          change: Math.random() > 0.5 ? 1 : -1  // Примерное изменение курса для демонстрации
+        };
 
-	const amount = Number(rawAmount)
+        // Отправляем данные всем подписчикам
+        currencyFeedSubscribers.forEach(subscriber => {
+          if (subscriber.readyState === ws.OPEN) {
+            subscriber.send(JSON.stringify(dataToSend));
+          }
+        });
+      });
+    } catch (error) {
+      console.error("Ошибка при получении курсов валют из базы данных:", error);
+    }
+  }, 2000); // Обновляем данные каждые 2 секунды
 
-	if (!KNOWN_CURRENCY_CODES.includes(from) || !KNOWN_CURRENCY_CODES.includes(to)) {
-		res.end(response(null, 'Unknown currency code'))
-		return
-	}
+  ws.on('close', () => {
+    clearInterval(sendCurrencyUpdates);
+    currencyFeedSubscribers = currencyFeedSubscribers.filter(subscriber => subscriber !== ws);
+  });
+});
 
-	if (isNaN(amount) || amount < 0) {
-		res.end(response(null, 'Invalid amount'))
-		return
-	}
 
-	const fromCurrency = myCurrencies[from]
-	const toCurrency = myCurrencies[to] = (myCurrencies[to] || {
-		"amount": 0,
-		"code": to
-	})
+// Эндпоинт для получения валют пользователя
+app.get('/currencies', authCheck, async (req, res) => {
+  try {
+    const currencies = await queryDB("SELECT * FROM currencies ORDER BY currency_code ASC");
+    res.json({ success: true, data: currencies });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
 
-	if (!fromCurrency || !fromCurrency.amount) {
-		res.end(response(null, 'Not enough currency'))
-		return
-	}
+// Эндпоинт для покупки валюты
+app.post('/currency-buy', authCheck, async (req, res) => {
+  const { from, to, amount: rawAmount } = req.body;
+  const amount = Number(rawAmount);
 
-	const exchangeRate = getExchangeRate(from, to) || 1
+  if (isNaN(amount) || amount <= 0) {
+    return res.json({ success: false, error: 'Invalid amount' });
+  }
 
-	if (fromCurrency.amount - amount < 0) {
-		res.end(response(null, 'Overdraft prevented'))
-		return
-	}
+  if (!KNOWN_CURRENCY_CODES.includes(from) || !KNOWN_CURRENCY_CODES.includes(to)) {
+    return res.json({ success: false, error: 'Unknown currency code' });
+  }
 
-	fromCurrency.amount -= amount
-	toCurrency.amount += amount * exchangeRate
+  try {
+    const fromCurrency = await queryDB("SELECT * FROM currencies WHERE currency_code = $1", [from]);
+    const toCurrency = await queryDB("SELECT * FROM currencies WHERE currency_code = $1", [to]);
+    const exchangeRate = await getExchangeRate(from, to);
 
-	writeData(data)
+    if (fromCurrency[0].amount < amount) {
+      return res.json({ success: false, error: 'Not enough currency' });
+    }
 
-	res.end(response(myCurrencies))
-})
+    await queryDB("BEGIN");
 
+    await queryDB("UPDATE currencies SET amount = amount::numeric - $1::numeric WHERE currency_code = $2", [amount, from]);
+    await queryDB("UPDATE currencies SET amount = amount::numeric + $1::numeric * $2::numeric WHERE currency_code = $3", [amount, exchangeRate, to]);
+
+    await queryDB("COMMIT");
+
+    res.json({ success: true });
+  } catch (error) {
+    await queryDB("ROLLBACK");
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// Эндпоинт для получения списка банков
 app.get('/banks', (req, res) => {
-	const POINTS_LIST = Object.freeze([
-		{ lat: 44.878414, lon: 39.190289 },
+  const POINTS_LIST = Object.freeze([
+    { lat: 44.878414, lon: 39.190289 },
 		{ lat: 44.6098268, lon: 40.1006606 },
 		{ lat: 51.9581028, lon: 85.9603235 },
 		{ lat: 52.4922513, lon: 82.7793606 },
@@ -260,79 +293,37 @@ app.get('/banks', (req, res) => {
 		{ lat: 59.851047, lon: 30.255081 },
 		{ lat: 59.910094, lon: 30.329551 },
 		{ lat: 59.850012, lon: 30.457657 },
-	])
-	
-	res.end(response(POINTS_LIST))
-})
+  ]);
 
+  res.json({ success: true, data: POINTS_LIST });
+});
+
+// Обработка неправильных маршрутов
 app.post('*', (req, res) => {
-	res.end(response(null, 'Invalid route'))
-})
+  res.json({ success: false, error: 'Invalid route' });
+});
 
+// Запуск сервера
 app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`)
-})
+  console.log(`Сервер запущен по адресу http://localhost:${port}`);
+});
 
-
-function setExchangeRate(currency1, currency2, rate) {
-	const existingInverseRate = data.exchange[`${currency2}/${currency1}`]
-	if (existingInverseRate) {
-		data.exchange[`${currency2}/${currency1}`] = formatAmount(1 / rate)
-		return
-	}
-	data.exchange[`${currency1}/${currency2}`] = rate
+// Пример функции для получения курса обмена
+async function getExchangeRate(from, to) {
+  try {
+    // Создаем строку вида "AUD/BTC" для поиска в столбце currency_pair
+    const currencyPair = `${from}/${to}`;
+    
+    const result = await queryDB(
+      "SELECT rate FROM exchange_rates WHERE currency_pair = $1",
+      [currencyPair]
+    );
+    
+    return result.length > 0 ? result[0].rate : 1; // Возвращаем 1, если курс не найден
+  } catch (error) {
+    console.error("Ошибка при получении курса обмена:", error);
+    return 1; // В случае ошибки возвращаем курс 1
+  }
 }
 
-function getExchangeRate(currency1, currency2) {
-	const straightRate = Number(data.exchange[`${currency1}/${currency2}`])
-	if (!isNaN(straightRate)) {
-		return straightRate
-	}
-	const inverseRate = data.exchange[`${currency2}/${currency1}`]
-	if (inverseRate) {
-		return 1/inverseRate
-	}
-	return 0
-}
-
-const currencyRateFeedGenerator = setInterval(() => {
-	// generate currency exchange rate change
-	const currenciesLength = KNOWN_CURRENCY_CODES.length
-	const index1 = Math.floor(Math.random() * currenciesLength)
-	let index2 = Math.floor(Math.random() * currenciesLength)
-	if (index1 === index2) {
-		index2 = (index2 + 1) % currenciesLength
-	}
-	const from = KNOWN_CURRENCY_CODES[index1]
-	const to = KNOWN_CURRENCY_CODES[index2]
-	const rate = formatAmount(0.001 + Math.random() * 100)
-	const previousExchangeRate = getExchangeRate(from, to)
-	const change = rate > previousExchangeRate ? 1 : rate < previousExchangeRate ? -1 : 0
-	setExchangeRate(from, to, rate)
-	writeData(data)
-	currencyFeedSubscribers.forEach(subscriber => subscriber.send(
-		JSON.stringify({
-			type: 'EXCHANGE_RATE_CHANGE',
-			from,
-			to,
-			rate,
-			change
-		})
-	))
-
-	// pick random user account and generate random transaction for it
-	if (Math.random() > 0.9) {
-		const account = data.accounts[MINE_ACCOUNT]
-		const amount = formatAmount(Math.random() * 1000)
-		account.balance = formatAmount(account.balance + amount)
-		account.transactions.push({
-			amount,
-			date: (new Date()).toISOString(),
-			from: generateAccountId(),
-			to: MINE_ACCOUNT
-		})
-		writeData(data)
-	}
-}, 1000)
-currencyRateFeedGenerator.unref()
 

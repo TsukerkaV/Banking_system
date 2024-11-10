@@ -1,109 +1,55 @@
-module.exports = {
-	readData,
-	writeData,
-	response,
-	makeAccount,
-	pregenerateMineCurrencies,
-	premakeAccounts,
-	formatAmount,
-	generateAccountId,
-	pregenerateHistory
+const { Pool } = require('pg');
+
+// Подключение к базе данных PostgreSQL
+const pool = new Pool({
+  user: 'postgres',
+  host: 'localhost',
+  database: 'Bank_system', // Название вашей базы данных
+  password: 'postgres',
+  port: 5432,
+});
+
+// Вспомогательная функция для выполнения SQL-запросов к базе данных
+async function queryDB(query, params = []) {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(query, params);
+    return res.rows;
+  } finally {
+    client.release();
+  }
 }
 
-const fs = require('fs')
-
-const PUBLIC_DIR = './public'
-
-function readData() {
-	return JSON.parse(fs.readFileSync(`${PUBLIC_DIR}/data.json`))
-}
-
-function writeData(dataToWrite) {
-	fs.writeFileSync(`${PUBLIC_DIR}/data.json`, JSON.stringify(dataToWrite, null, 4))
-}
-
+// Функция для формирования стандартного JSON-ответа
 function response(payload = null, error = '') {
-	return JSON.stringify({
-		payload,
-		error
-	})
+  return {
+    payload,
+    error
+  };
 }
 
+// Функция форматирования суммы до двух десятичных знаков
 function formatAmount(number) {
-	return Number(number.toFixed(2))
+  return Number(number.toFixed(2));
 }
 
+// Функция для генерации случайного ID для аккаунта (только цифры)
 function generateAccountId() {
-	return Array(26)
-		.fill(0)
-		.map(() => Math.floor(Math.random() * 9))
-		.join('')
+  const randomDigits = () => Math.floor(Math.random() * 10); // Генерация случайной цифры
+  let accountId = '';
+
+  // Генерируем строку из 26 случайных цифр
+  for (let i = 0; i < 26; i++) {
+      accountId += randomDigits();
+  }
+
+  return accountId;
 }
 
-function makeAccount(mine = false, preseededId = '') {
-	return {
-		account: preseededId || generateAccountId(),
-		mine,
-		balance: 0,
-		transactions: []
-	}
-}
 
-function pregenerateMineCurrencies(data, knowCurrencies) {
-	const currencies = data.mine.currencies
-	knowCurrencies.forEach(currency => {
-		if (!currencies[currency]) {
-			currencies[currency] = {
-				"amount": Math.random()*100,
-				"code": currency
-			}
-		}
-	})
-	writeData(data)
-}
-
-function premakeAccounts(data, newAccounts, mine = false) {
-	const accounts = data.accounts
-	newAccounts.forEach(account => {
-		if (!accounts[account]) {
-			accounts[account] = makeAccount(mine, account)
-		}
-	})
-	writeData(data)
-}
-
-function pregenerateHistory(data, accounts, mine = false) {
-	premakeAccounts(data, accounts, mine);
-	const months = 10
-	const transactionsPerMonth = 5
-	accounts.forEach(accountId => {
-		const account = data.accounts[accountId]
-		if (account.transactions.length >= months * transactionsPerMonth) {
-			return;
-		}
-
-		const dayAsMs = 24 * 60 * 60 * 1000
-		const monthAsMs = 30 * dayAsMs
-		const yearAsMs = 12 * monthAsMs
-		let date = Date.now() - yearAsMs 
-
-		for (let month = 0; month <= months; month++) {
-			for (let transaction = 0; transaction <= transactionsPerMonth; transaction++) {
-				const sign = Math.random() < 0.5 ? 1 : -1
-				const amount = formatAmount(Math.random() * 10000)
-
-				const otherAccountId = generateAccountId()
-				const randomDaysOffset = ((Math.random() - 0.5) * Math.random() * 5) * dayAsMs
-
-				account.transactions.push({
-					date: new Date(date + randomDaysOffset).toISOString(),
-					from: sign < 0 ? accountId : otherAccountId,
-					to: sign > 0 ? accountId : otherAccountId,
-					amount,
-				})
-			}
-			date += monthAsMs
-		}
-	})
-}
-
+module.exports = {
+  queryDB,
+  response,
+  formatAmount,
+  generateAccountId
+};

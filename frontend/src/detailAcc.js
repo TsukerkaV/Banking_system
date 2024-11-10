@@ -18,6 +18,7 @@ export async function createDetails(id, token){
     
     const header = createHeader(token);
     let thisAcc = await getAccount(id, token);
+    console.log(thisAcc)
     const section = el('section', {class:'section details__section'});
     const container = el('div', {class: 'container login-container'});
     const detailsWrapper = el('div',{class:'details__wrapper'});
@@ -28,7 +29,7 @@ export async function createDetails(id, token){
     const infoWrapper = el('div', {class:'details__wrapper-info'},[
         el('p', {class:'details__acc-number'}, `№ ${id}`),
         el('p', {class:'details__balance'},'Баланс',[
-            el('span', {class:'details__balance-numb'},`${thisAcc.payload.balance} ₽` )
+            el('span', {class:'details__balance-numb'},`${thisAcc.data.balance} ₽` )
         ])
     ])
     const statWrapper = el('div', {class:'details__stat-wrapper'});
@@ -57,7 +58,7 @@ export async function createDetails(id, token){
     setChildren(formBtnDiv, formBtn);
     setChildren(detailForm, [formTitle, firstFormGrp, secondFormGrp,formBtnDiv]);
 
-    const chart = renderChart(thisAcc.payload.transactions, thisAcc.payload.balance, id);
+    const chart = renderChart(thisAcc.data.transactions, thisAcc.data.balance, id);
     const chartWrapper = el('div', {class: 'chart__wrapper'});
     chart.addEventListener('click', (e)=>{
         e.preventDefault();
@@ -69,7 +70,8 @@ export async function createDetails(id, token){
     setChildren(statWrapper, [detailForm, chartWrapper]);
     const tableWrapper = el('div', {class: 'details__wrapper-table'});
     const tableTitle = el('h2', {class:'title table__title '}, 'История переводов');
-    const $table = renderTable(thisAcc.payload.transactions, id);
+    // const $table = renderTable(thisAcc.data.transaction_id, id);
+    const $table = renderTable(thisAcc.data.transactions, id);
     tableWrapper.append(tableTitle, $table)
     tableWrapper.addEventListener('click', (e)=>{
         e.preventDefault();
@@ -148,10 +150,10 @@ export async function createDetails(id, token){
         e.preventDefault();
         
         let newTransactions = await transferFunds(id, numbInput.value, sumInput.value, token);
-        const newTable = renderTable(newTransactions.payload.transactions, id);
+        const newTable = renderTable(newTransactions.data.transactions, id);
         tableWrapper.innerHTML = '';
         setChildren(tableWrapper, [tableTitle, newTable]);
-        console.log(newTransactions.payload.transactions.at(-1));
+        console.log(newTransactions.data.transactions.at(-1));
     })
 
 }

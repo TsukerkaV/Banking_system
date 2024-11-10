@@ -645,6 +645,7 @@ async function authorization(login, password) {
         });
         let data = await response.json();
         throwErr(response, data);
+        //console.log(data.token);
         return data;
     } catch (err1) {
         catchErr(err1);
@@ -761,7 +762,8 @@ async function exchangeCurrency(from, to, amount, token) {
             }
         }).then((res)=>res.json());
     } catch (err1) {
-        catchErr(err1);
+        console.error("Error during currency exchange:", err1);
+        catchErr(err1); // Логирование ошибок
     }
 }
 function getDate(data) {
@@ -836,7 +838,7 @@ function renderLogInForm() {
             }, [
                 (0, _redom.el)("input", {
                     class: "form__input",
-                    type: "text",
+                    type: "password",
                     id: "pass",
                     required: true
                 })
@@ -848,8 +850,13 @@ function renderLogInForm() {
         ]),
         (0, _redom.el)("button", {
             class: "btn form-btn",
-            id: "form-login-btn"
-        }, "\u0412\u043E\u0439\u0442\u0438")
+            id: "form-login-btn",
+            type: "submit"
+        }, "\u0412\u043E\u0439\u0442\u0438"),
+        (0, _redom.el)("div", {
+            class: "error__wrapper",
+            id: "err__login"
+        }) // для отображения ошибки
     ]);
     const container = (0, _redom.el)("div", {
         class: "container login-container",
@@ -906,15 +913,52 @@ function renderLogInForm() {
         }
     ]);
     $form.addEventListener("submit", async (e)=>{
-        e.preventDefault();
-        const $loginInput = document.getElementById("login");
-        const $passInput = document.getElementById("pass");
-        const token = await (0, _index.authorization)($loginInput.value.trim(), $passInput.value.trim());
-        (0, _accounts.renderAccount)(token.payload.token);
+        e.preventDefault(); // Останавливает стандартную отправку формы
+        const isValid = validation.isValid; // Проверка, прошла ли форма валидацию
+        if (isValid) {
+            const $loginInput = document.getElementById("login");
+            const $passInput = document.getElementById("pass");
+            const token = await (0, _index.authorization)($loginInput.value.trim(), $passInput.value.trim());
+            if (token.success) // Если токен получен, отображаем аккаунт
+            (0, _accounts.renderAccount)(token.token);
+            else // Если ошибка, показываем сообщение об ошибке
+            document.getElementById("err__login").textContent = "\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u043B\u043E\u0433\u0438\u043D \u0438\u043B\u0438 \u043F\u0430\u0440\u043E\u043B\u044C";
+        } else // Если форма не прошла валидацию, ошибки будут показаны на форме
+        console.log("\u0424\u043E\u0440\u043C\u0430 \u043D\u0435 \u043F\u0440\u043E\u0448\u043B\u0430 \u0432\u0430\u043B\u0438\u0434\u0430\u0446\u0438\u044E");
     });
 }
 
-},{"redom":"gT5MM","./index":"8lqZg","./loader":"1Ef8k","./accounts":"3MoLQ","just-validate":"gcCDD","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"gT5MM":[function(require,module,exports) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","redom":"gT5MM","./index":"8lqZg","./loader":"1Ef8k","./accounts":"3MoLQ","just-validate":"gcCDD"}],"gkKU3":[function(require,module,exports) {
+exports.interopDefault = function(a) {
+    return a && a.__esModule ? a : {
+        default: a
+    };
+};
+exports.defineInteropFlag = function(a) {
+    Object.defineProperty(a, "__esModule", {
+        value: true
+    });
+};
+exports.exportAll = function(source, dest) {
+    Object.keys(source).forEach(function(key) {
+        if (key === "default" || key === "__esModule" || Object.prototype.hasOwnProperty.call(dest, key)) return;
+        Object.defineProperty(dest, key, {
+            enumerable: true,
+            get: function() {
+                return source[key];
+            }
+        });
+    });
+    return dest;
+};
+exports.export = function(dest, destName, get) {
+    Object.defineProperty(dest, destName, {
+        enumerable: true,
+        get: get
+    });
+};
+
+},{}],"gT5MM":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "el", ()=>(0, _htmlJs.el));
@@ -1010,37 +1054,7 @@ function parse(query) {
     };
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"gkKU3":[function(require,module,exports) {
-exports.interopDefault = function(a) {
-    return a && a.__esModule ? a : {
-        default: a
-    };
-};
-exports.defineInteropFlag = function(a) {
-    Object.defineProperty(a, "__esModule", {
-        value: true
-    });
-};
-exports.exportAll = function(source, dest) {
-    Object.keys(source).forEach(function(key) {
-        if (key === "default" || key === "__esModule" || Object.prototype.hasOwnProperty.call(dest, key)) return;
-        Object.defineProperty(dest, key, {
-            enumerable: true,
-            get: function() {
-                return source[key];
-            }
-        });
-    });
-    return dest;
-};
-exports.export = function(dest, destName, get) {
-    Object.defineProperty(dest, destName, {
-        enumerable: true,
-        get: get
-    });
-};
-
-},{}],"84GoL":[function(require,module,exports) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"84GoL":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "parseArguments", ()=>parseArguments);
@@ -1370,10 +1384,10 @@ var _loader = require("./loader");
 async function renderAccount(token) {
     let sortFlag = "";
     const accounts = await (0, _index.getAccounts)(token);
-    accounts.payload = accounts.payload.sort(function(a, b) {
-        if (a[sortFlag] < b[sortFlag]) return -1;
-    });
-    console.log(accounts.payload);
+    // accounts.payload = accounts.payload.sort(function (a, b) {
+    //     if (a[sortFlag] < b[sortFlag]) return -1;
+    // })
+    console.log(accounts.data);
     async function createAcc(accounts, token) {
         document.body.innerHTML = "";
         (0, _loader.createLoader)();
@@ -1417,7 +1431,7 @@ async function renderAccount(token) {
             });
             const cardTitle = (0, _redom.el)("h3", {
                 class: "card__title"
-            }, account.account);
+            }, account.account_id);
             const cardBalance = (0, _redom.el)("p", {
                 class: "account__balance"
             }, `${account.balance} \u{20BD}`);
@@ -1427,10 +1441,7 @@ async function renderAccount(token) {
             const trDate = (0, _redom.el)("span", {
                 class: "account__transaction-date"
             });
-            if (account.transactions.length > 0 && account.transactions.at(-1).date !== null) {
-                console.log(account.transactions.at(-1).date);
-                trDate.innerHTML = (0, _index.getDate)(account.transactions.at(-1).date);
-            } else trDate.innerHTML = (0, _index.getDate)(new Date());
+            trDate.innerHTML = (0, _index.getDate)(new Date());
             cardTransaction.append(trDate);
             (0, _redom.setChildren)(cardRight, [
                 cardTitle,
@@ -1446,7 +1457,7 @@ async function renderAccount(token) {
             openBtn.addEventListener("click", async (e)=>{
                 e.preventDefault();
                 console.log(thisAcc);
-                (0, _detailAcc.createDetails)(account.account, token);
+                (0, _detailAcc.createDetails)(account.account_id, token);
             });
             (0, _redom.setChildren)(btnWraper, openBtn);
             (0, _redom.setChildren)(accountCard, [
@@ -1476,8 +1487,8 @@ async function renderAccount(token) {
             renderAccount(token);
         });
     }
-    createAcc(accounts.payload, token);
-    document.querySelector(".current").innerHTML = "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430";
+    createAcc(accounts.data, token);
+//document.querySelector('.current').innerHTML = 'Сортировка';
 }
 
 },{"./index":"8lqZg","./header":"ef18b","redom":"gT5MM","./detailAcc":"eWgUH","./loader":"1Ef8k","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ef18b":[function(require,module,exports) {
@@ -1587,15 +1598,13 @@ async function renderCurrency(token) {
     const rightWrap = (0, _redom.el)("div", {
         class: "curr__wrapper-right"
     });
-    const changeCoins = [];
-    console.log(changeCoins);
+    // Загружаем данные для валютных аккаунтов
     const $currencyAcc = await (0, _index.getCurrencyAccounts)(token);
-    console.log($currencyAcc.payload);
+    console.log($currencyAcc.data); // Должно вывести массив с валютами
     const knownCurr = await (0, _index.getKnownCurrwncies)();
-    console.log(knownCurr.payload);
-    const arr = [];
-    const coinCard = renderCoinTable($currencyAcc.payload, knownCurr.payload);
-    const $form = await createForm(token, knownCurr.payload);
+    console.log(knownCurr.data); // Должно вывести массив с известными валютами
+    const coinCard = renderCoinTable($currencyAcc.data); // Используем data вместо payload
+    const $form = await createForm(token, knownCurr.data); // Используем data вместо payload
     (0, _redom.setChildren)(leftWrap, [
         coinCard,
         $form
@@ -1620,209 +1629,29 @@ function renderCoinTable(coins) {
     const coinCard = (0, _redom.el)("div", {
         class: "coin__card"
     });
-    coinCard.innerHTML = "";
     const cardTitle = (0, _redom.el)("h3", {
         class: "coin__card-title"
     }, "\u0412\u0430\u0448\u0438 \u0432\u0430\u043B\u044E\u0442\u044B");
     const coinUl = (0, _redom.el)("ul", {
         class: "list-reset coin__ul"
-    }, [
-        (0, _redom.el)("li", {
+    });
+    // Динамически отображаем валюты на основе данных, переданных с бэкенда
+    coins.forEach((currency)=>{
+        const listItem = (0, _redom.el)("li", {
             class: "coin__item"
         }, [
             (0, _redom.el)("p", {
                 class: "coin__currency"
-            }, coins.AUD.code),
+            }, currency.currency_code),
             (0, _redom.el)("span", {
                 class: "coin__item-border"
             }),
             (0, _redom.el)("span", {
                 class: "coin__amount"
-            }, coins.AUD.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.BTC.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.BTC.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.BYR.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.BYR.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.CAD.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.CAD.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.CHF.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.CHF.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.CNH.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.CNH.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.ETH.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.ETH.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.EUR.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.EUR.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.GBP.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.GBP.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.HKD.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.HKD.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.JPY.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.JPY.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.NZD.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.NZD.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.RUB.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.RUB.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.UAH.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.UAH.amount)
-        ]),
-        (0, _redom.el)("li", {
-            class: "coin__item"
-        }, [
-            (0, _redom.el)("p", {
-                class: "coin__currency"
-            }, coins.USD.code),
-            (0, _redom.el)("span", {
-                class: "coin__item-border"
-            }),
-            (0, _redom.el)("span", {
-                class: "coin__amount"
-            }, coins.USD.amount)
-        ])
-    ]);
+            }, currency.amount) // Используем amount для суммы
+        ]);
+        coinUl.append(listItem);
+    });
     (0, _redom.setChildren)(coinCard, [
         cardTitle,
         coinUl
@@ -1970,7 +1799,10 @@ async function createForm(token, knownCurr) {
     form.addEventListener("submit", async (e)=>{
         e.preventDefault();
         const res = await (0, _index.exchangeCurrency)(selectFrom.value, selectTo.value, sumInput.value, token);
-        renderCoinTable(res.payload);
+        console.log(selectFrom.value, selectTo.value, sumInput.value, token);
+        const $curACC = await (0, _index.getCurrencyAccounts)(token);
+        // console.log($curACC.data); // Должно вывести массив с валютами
+        renderCoinTable($curACC.data);
         renderCurrency(token);
         console.log(res.payload);
     });
@@ -3220,6 +3052,7 @@ async function renderMapOfBanks(token) {
     $map.style.width = "100%";
     $map.style.height = "728px";
     let banks = await (0, _.getBanks)();
+    console.log(banks);
     var myMap;
     ymaps.ready(init);
     function init() {
@@ -3230,7 +3063,7 @@ async function renderMapOfBanks(token) {
             ],
             zoom: 10
         });
-        for (const bank of banks.payload){
+        for (const bank of banks.data){
             let placemark = new ymaps.Placemark([
                 bank.lat,
                 bank.lon
@@ -3273,6 +3106,7 @@ async function createDetails(id, token) {
     (0, _loader.createLoader)();
     const header = (0, _header.createHeader)(token);
     let thisAcc = await (0, _index.getAccount)(id, token);
+    console.log(thisAcc);
     const section = (0, _redom.el)("section", {
         class: "section details__section"
     });
@@ -3304,7 +3138,7 @@ async function createDetails(id, token) {
         }, "\u0411\u0430\u043B\u0430\u043D\u0441", [
             (0, _redom.el)("span", {
                 class: "details__balance-numb"
-            }, `${thisAcc.payload.balance} \u{20BD}`)
+            }, `${thisAcc.data.balance} \u{20BD}`)
         ])
     ]);
     const statWrapper = (0, _redom.el)("div", {
@@ -3381,7 +3215,7 @@ async function createDetails(id, token) {
         secondFormGrp,
         formBtnDiv
     ]);
-    const chart = renderChart(thisAcc.payload.transactions, thisAcc.payload.balance, id);
+    const chart = renderChart(thisAcc.data.transactions, thisAcc.data.balance, id);
     const chartWrapper = (0, _redom.el)("div", {
         class: "chart__wrapper"
     });
@@ -3406,7 +3240,8 @@ async function createDetails(id, token) {
     const tableTitle = (0, _redom.el)("h2", {
         class: "title table__title "
     }, "\u0418\u0441\u0442\u043E\u0440\u0438\u044F \u043F\u0435\u0440\u0435\u0432\u043E\u0434\u043E\u0432");
-    const $table = renderTable(thisAcc.payload.transactions, id);
+    // const $table = renderTable(thisAcc.data.transaction_id, id);
+    const $table = renderTable(thisAcc.data.transactions, id);
     tableWrapper.append(tableTitle, $table);
     tableWrapper.addEventListener("click", (e)=>{
         e.preventDefault();
@@ -3475,13 +3310,13 @@ async function createDetails(id, token) {
     detailForm.addEventListener("submit", async (e)=>{
         e.preventDefault();
         let newTransactions = await (0, _index.transferFunds)(id, numbInput.value, sumInput.value, token);
-        const newTable = renderTable(newTransactions.payload.transactions, id);
+        const newTable = renderTable(newTransactions.data.transactions, id);
         tableWrapper.innerHTML = "";
         (0, _redom.setChildren)(tableWrapper, [
             tableTitle,
             newTable
         ]);
-        console.log(newTransactions.payload.transactions.at(-1));
+        console.log(newTransactions.data.transactions.at(-1));
     });
 }
 function autocomplite(numbsList, inner, input) {

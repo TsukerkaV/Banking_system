@@ -5,130 +5,56 @@ import { greenArr, redArr } from "./svg";
 import { createLoader } from "./loader";
 import JustValidate from 'just-validate';
 
-export async function renderCurrency(token){
-    document.body.innerHTML ='';
+export async function renderCurrency(token) {
+    document.body.innerHTML = '';
     createLoader();
     const header = createHeader(token);
-    const section = el('section', {class:'section currency__section'});
-    const container = el('div', {class: 'container '});
-    const title = el('h2', {class:'title curr__title'}, 'Валютный обмен');
-    const sectiionWrap = el('div', {class:'curr__wrapper'});
-    const leftWrap = el('div', {class:'curr__wrapper-left'});
-    const rightWrap = el('div', {class:'curr__wrapper-right'});
+    const section = el('section', { class: 'section currency__section' });
+    const container = el('div', { class: 'container ' });
+    const title = el('h2', { class: 'title curr__title' }, 'Валютный обмен');
+    const sectiionWrap = el('div', { class: 'curr__wrapper' });
+    const leftWrap = el('div', { class: 'curr__wrapper-left' });
+    const rightWrap = el('div', { class: 'curr__wrapper-right' });
 
-    const changeCoins = []
-    
-    console.log(changeCoins);
+    // Загружаем данные для валютных аккаунтов
     const $currencyAcc = await getCurrencyAccounts(token);
-    
-    console.log($currencyAcc.payload);
+    console.log($currencyAcc.data); // Должно вывести массив с валютами
     const knownCurr = await getKnownCurrwncies();
-    console.log(knownCurr.payload);
-    const arr = [];
-    
-    
-    
-    const coinCard = renderCoinTable($currencyAcc.payload, knownCurr.payload);
-    const $form = await createForm(token, knownCurr.payload) ;
+    console.log(knownCurr.data); // Должно вывести массив с известными валютами
+
+    const coinCard = renderCoinTable($currencyAcc.data);  // Используем data вместо payload
+    const $form = await createForm(token, knownCurr.data); // Используем data вместо payload
     setChildren(leftWrap, [coinCard, $form]);
     const changeCard = await createChangedCoinCard();
     setChildren(rightWrap, changeCard);
-   
-    setChildren(sectiionWrap,[leftWrap, rightWrap]);
-    setChildren(container,[title, sectiionWrap])
+
+    setChildren(sectiionWrap, [leftWrap, rightWrap]);
+    setChildren(container, [title, sectiionWrap]);
     setChildren(section, container);
     setChildren(document.body, [header, section]);
 }
 
-function renderCoinTable(coins){
-    const coinCard = el('div', {class: "coin__card"});
-    coinCard.innerHTML = '';
-    const cardTitle = el('h3', {class:'coin__card-title'}, 'Ваши валюты');
-   
 
-    const coinUl = el('ul', {class:'list-reset coin__ul'},[
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.AUD.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.AUD.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.BTC.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.BTC.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.BYR.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.BYR.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.CAD.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.CAD.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.CHF.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.CHF.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.CNH.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.CNH.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.ETH.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.ETH.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.EUR.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.EUR.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.GBP.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.GBP.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.HKD.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.HKD.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.JPY.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.JPY.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.NZD.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.NZD.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.RUB.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.RUB.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.UAH.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.UAH.amount)
-        ]),
-        el('li', {class: 'coin__item'},[
-            el('p', {class:'coin__currency'}, coins.USD.code),
-            el('span',{class:'coin__item-border'}),
-            el('span', {class:'coin__amount'}, coins.USD.amount)
-        ])
+function renderCoinTable(coins) {
+    const coinCard = el('div', { class: "coin__card" });
+    const cardTitle = el('h3', { class: 'coin__card-title' }, 'Ваши валюты');
+    const coinUl = el('ul', { class: 'list-reset coin__ul' });
 
-    ]);
-    
+    // Динамически отображаем валюты на основе данных, переданных с бэкенда
+    coins.forEach(currency => {
+        const listItem = el('li', { class: 'coin__item' }, [
+            el('p', { class: 'coin__currency' }, currency.currency_code),  // Используем currency_code для кода валюты
+            el('span', { class: 'coin__item-border' }),
+            el('span', { class: 'coin__amount' }, currency.amount)  // Используем amount для суммы
+        ]);
+        coinUl.append(listItem);
+    });
+
     setChildren(coinCard, [cardTitle, coinUl]);
-
     return coinCard;
 }
+
+
 async function createChangedCoinCard(){
     const chCurr = await getChangedCurrency();
     const card = el('div', {class: 'change__card'});
@@ -261,10 +187,14 @@ async function createForm(token, knownCurr){
     form.addEventListener('submit', async (e)=>{
         e.preventDefault();
         const res = await exchangeCurrency(selectFrom.value, selectTo.value, sumInput.value, token);
-        renderCoinTable(res.payload);
+        console.log(selectFrom.value, selectTo.value, sumInput.value, token)
+        const $curACC = await getCurrencyAccounts(token);
+        // console.log($curACC.data); // Должно вывести массив с валютами
+        renderCoinTable($curACC.data);
         renderCurrency(token)
         console.log(res.payload);
     })
+    
     setChildren(inputGroup, [inputLabel, inputWrapper]);
     setChildren(selectGroup1 ,[selectLabelFrom, selectFrom]);
     setChildren(selectGroup2 ,[selectLabelTo, selectTo]);
