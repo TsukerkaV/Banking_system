@@ -1,5 +1,5 @@
 import {el, setChildren} from 'redom';
-import { authorization, getAccounts } from './index';
+import { authorization} from './index';
 import { createLoader } from './loader';
 import { renderAccount } from './accounts';
 import JustValidate from 'just-validate';

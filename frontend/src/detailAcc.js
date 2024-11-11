@@ -70,7 +70,6 @@ export async function createDetails(id, token){
     setChildren(statWrapper, [detailForm, chartWrapper]);
     const tableWrapper = el('div', {class: 'details__wrapper-table'});
     const tableTitle = el('h2', {class:'title table__title '}, 'История переводов');
-    // const $table = renderTable(thisAcc.data.transaction_id, id);
     const $table = renderTable(thisAcc.data.transactions, id);
     tableWrapper.append(tableTitle, $table)
     tableWrapper.addEventListener('click', (e)=>{
@@ -280,8 +279,7 @@ function renderChart(transactions, balance, id){
     for(const transaction of transactions){
         let dat = new Date(transaction.date);
         let mm = dat.getMonth()+1;
-        // let now = new Date();
-        // let nowMonth = now.getMonth()+1
+       
         monthArr.push(mm);
         switch(mm){
             case 2:{

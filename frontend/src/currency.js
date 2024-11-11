@@ -22,8 +22,8 @@ export async function renderCurrency(token) {
     const knownCurr = await getKnownCurrwncies();
     console.log(knownCurr.data); // Должно вывести массив с известными валютами
 
-    const coinCard = renderCoinTable($currencyAcc.data);  // Используем data вместо payload
-    const $form = await createForm(token, knownCurr.data); // Используем data вместо payload
+    const coinCard = renderCoinTable($currencyAcc.data);  
+    const $form = await createForm(token, knownCurr.data); 
     setChildren(leftWrap, [coinCard, $form]);
     const changeCard = await createChangedCoinCard();
     setChildren(rightWrap, changeCard);
@@ -43,9 +43,9 @@ function renderCoinTable(coins) {
     // Динамически отображаем валюты на основе данных, переданных с бэкенда
     coins.forEach(currency => {
         const listItem = el('li', { class: 'coin__item' }, [
-            el('p', { class: 'coin__currency' }, currency.currency_code),  // Используем currency_code для кода валюты
+            el('p', { class: 'coin__currency' }, currency.currency_code),  
             el('span', { class: 'coin__item-border' }),
-            el('span', { class: 'coin__amount' }, currency.amount)  // Используем amount для суммы
+            el('span', { class: 'coin__amount' }, currency.amount)  
         ]);
         coinUl.append(listItem);
     });
@@ -66,11 +66,12 @@ async function createChangedCoinCard(){
         const coin = JSON.parse(event.data)
         coinsArr.push(coin);
    
-        // let cnt = 0;
+        
         for(const i of coinsArr){
-            //cnt++;
+            
             if(ul.childNodes.length <22){
-                // console.log("i "+ i.to);
+                //Для статического отображения
+               
                 const li = el('li', {class: 'change__item'})
                 const coinPare = el('p', {class:'coin__currency'}, `${i.from}/${i.to}`);
                 const coinBorder = el('span',{class:'coin__item-border'});
@@ -89,6 +90,7 @@ async function createChangedCoinCard(){
                 ul.append(li);
             }
             else{
+                //Для динамического отображения
                 // ul.removeChild(ul.childNodes[0]); 
                 // const li = el('li', {class: 'change__item'})
                 // const coinPare = el('p', {class:'coin__currency'}, `${i.from}/${i.to}`);
@@ -189,7 +191,6 @@ async function createForm(token, knownCurr){
         const res = await exchangeCurrency(selectFrom.value, selectTo.value, sumInput.value, token);
         console.log(selectFrom.value, selectTo.value, sumInput.value, token)
         const $curACC = await getCurrencyAccounts(token);
-        // console.log($curACC.data); // Должно вывести массив с валютами
         renderCoinTable($curACC.data);
         renderCurrency(token)
         console.log(res.payload);

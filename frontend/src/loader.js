@@ -1,4 +1,4 @@
-import {el, setChildren} from 'redom';
+import {el} from 'redom';
 import { loaderSvg } from './svg';
 export function createLoader(){
     const mask = el('div', {class: 'mask'});
@@ -10,5 +10,5 @@ export function createLoader(){
         mask.classList.add('hide');
     })
     
-    // return mask;
+   
 };
