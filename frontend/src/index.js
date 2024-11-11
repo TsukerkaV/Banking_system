@@ -1,5 +1,4 @@
 import { renderLogInForm } from "./logIn";
-import { renderAccount } from "./accounts";
 import { createLoader } from "./loader";
 const SERVER_URL = 'http://localhost:3000';
 
@@ -60,7 +59,7 @@ export async function authorization(login, password){
     })
     let data = await response.json()
     throwErr(response, data);
-    //console.log(data.token);
+   
     return data
     }
     catch(err){

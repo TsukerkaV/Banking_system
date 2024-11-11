@@ -3,7 +3,7 @@ import { renderLogInForm } from "./logIn";
 import { renderAccount } from './accounts';
 import { renderCurrency } from './currency';
 import { renderMapOfBanks } from './banks';
-//import { createLoader } from './loader';
+
 export function createHeader(token){
     const header = el('header', {class: 'header'}, [])
     const coinLogo = el('a', {class:'coin__logo', href: '#'}, 'Coin.');
