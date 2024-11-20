@@ -3,6 +3,12 @@ import { createHeader } from "./header";
 import { getBanks } from ".";
 import { createLoader } from "./loader";
 
+/**
+ * Функция для создания карты банкоматов
+ * @param {string} token - токен доступа
+ *
+ */
+
 export async function renderMapOfBanks(token){
     document.body.innerHTML ='';
     createLoader();

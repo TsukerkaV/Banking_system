@@ -1,4 +1,4 @@
-import { getAccount, getDate, transferFunds } from "./index";
+import { getAccount } from "./index";
 import {el, setChildren} from 'redom';
 import { createHeader } from './header';
 import { createDetails } from "./detailAcc";
@@ -6,6 +6,13 @@ import { renderTable } from "./detailAcc";
 import { createLoader } from "./loader";
 import Chart from 'chart.js/auto';
 
+/**
+ * Функция для создания и отображения страницы с деиальной информацией о балансе
+ * @param {string} token - токен доступа
+ * @param {number} id - номер счета
+ * @description Отображает страницу с детальной информацией о балансе и графиком со статистикой баланса
+ *
+ */
 export async function balanceDetails(id, token){
     document.body.innerHTML ='';
     createLoader();
@@ -26,30 +33,35 @@ export async function balanceDetails(id, token){
     const infoWrapper = el('div', {class:'details__wrapper-info'},[
         el('p', {class:'details__acc-number'}, `№ ${id}`),
         el('p', {class:'details__balance'},'Баланс',[
-            el('span', {class:'details__balance-numb'},`${thisAcc.payload.balance} ₽` )
+            el('span', {class:'details__balance-numb'},`${thisAcc.data.balance} ₽` )
         ])
     ])
     const dynamicChartWrapper = el('div', {class: 'chart__wrapper --balance__chart-wrapper'});
-    const dynChart = renderChart(thisAcc.payload.transactions, thisAcc.payload.balance, id);
+    const dynChart = renderChart(thisAcc.data.transactions, thisAcc.data.balance, id);
     const dynChartTitle = el('h2', {class:'title chart__title'}, 'Динамика баланса');
     setChildren(dynamicChartWrapper, [dynChartTitle, dynChart])
-    const transactionsChartWrapper = el('div', {class: 'chart__wrapper --balance__chart-wrapper'});
-    const trChart = renderChart(thisAcc.payload.transactions, thisAcc.payload.balance, id);
-    const trChartTitle = el('h2', {class:'title chart__title'}, 'Соотношение входящих исходящих транзакций');
-    setChildren(transactionsChartWrapper, [trChartTitle, trChart])
+
     const tableWrapper = el('div', {class: 'details__wrapper-table --balance__table'});
     const tableTitle = el('h2', {class:'title table__title '}, 'История переводов');
-    const $table = renderTable(thisAcc.payload.transactions, id);
+    const $table = renderTable(thisAcc.data.transactions, id);
     tableWrapper.append(tableTitle, $table)
-    setChildren(container, [detailsWrapper, infoWrapper, dynamicChartWrapper, transactionsChartWrapper ,tableWrapper]);
+    setChildren(container, [detailsWrapper, infoWrapper, dynamicChartWrapper ,tableWrapper]);
     setChildren(section, container);
     setChildren(document.body, [header, section]);
 
 }
+/**
+ * Функция для создания графика статистики баланса за 12 месяцев
+ * @param {Array} transactions - массив транзакций для конкретного счета
+ * @param {number} id - номер счета
+ * @param {Object} balance - объект баланса
+ * @description Строит график статистики баланса за 12 месяцев
+ *
+ */
 function renderChart(transactions, balance, id){
     const canvasWrapper = el('div', {class:'canvas__wrapper'});
     canvasWrapper.style.width = '1000px'
-    //canvasWrapper.style.height = '288px'
+    
     const chart = el('canvas', {id:'myChart', class: 'chart__canvas'});
     canvasWrapper.append(chart);
     let monthArr = [];
@@ -69,8 +81,7 @@ function renderChart(transactions, balance, id){
     for(const transaction of transactions){
         let dat = new Date(transaction.date);
         let mm = dat.getMonth()+1;
-        // let now = new Date();
-        // let nowMonth = now.getMonth()+1
+       
         monthArr.push(mm);
         switch(mm){
             case 2:{

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article><h2>Запуск проекта</h2>
+<ol>
+<li>Для запуска данного проекта вам понадобится nodejs и npm. Установите nodejs на свой компьютер, пакетный менеджер npm (Node Package Manager) по умолчанию устанавливается вместе c nodejs.</li>
+<li>Склонируйте данный репозиторий. Перейдите в папку backend и в консоли выполните команду <code>npm start</code> для запуска сервера.</li>
+<li>По умолчанию сервер слушает на 3000-ом порту localhost.</li>
+<li>Чтобы запустить клиентскую часть приложения, перейдите в папку frontend и выполните команду <code>npm run dev</code>. Сборщик parsel отработает и приложение будет доступно по ссылке в консоли.</li>
+</ol>
+<h2>Логин и пароль</h2>
+<p>На данный момент доступен только вход в следующий аккаунт:</p>
+<ul>
+<li>Логин: <code>developer</code></li>
+<li>Пароль: <code>password</code></li>
+</ul>
+<h2>База данных</h2>
+<p>База данных bank_system разворачивается на порту 5432. Для ее реализации был использован postgreSQL версии 17.0.</p>
+<h2>Методы API</h2>
+<p>Все методы API отвечают объектом следующего общего формата:</p>
+<p>{
+payload, // любое произвольное значение, которое вернёт метод API (null, если произошла ошибка или невозможно вернуть какие-либо значимые данные)
+error // текст описания/кода ошибки, которая произошла; заполняется, только если произошла ошибка. При успешном завершении работы метода здесь всегда будет пустая строка.
+}</p>
+<h3>В ответ вернёт payload следующего формата:</h3>
+<p>{ token }
+где token — это строка, содержащая информацию для доступа к запросам, требующим авторизацию.</p>
+<h3>Возможные ошибки:</h3>
+<p>Invalid password — пытаемся войти с неверным паролем;
+No such user — пользователя с таким логином не существует.
+В дальнейшем токен указывается в заголовке Authorization для методов, которые требуют авторизации: Authorization: Basic TOKEN, где TOKEN заменяем на значение токена, которое мы получили.</p>
+<p>Если мы запрашиваем какой-либо метод и он возвращает ошибку Unauthorized, это означает, что мы забыли предоставить заголовок с токеном при вызове метода.</p>
+<h3>GET /accounts</h3>
+<p>Возвращает список счетов пользователя.
+Ответом будет массив с информацией об счёте пользователя примерно в таком формате:</p>
+<p>[
+{
+&quot;account&quot;: &quot;74213041477477406320783754&quot;,
+&quot;balance&quot;: 0,
+&quot;transactions&quot;: [
+{
+&quot;amount&quot;: 1234,
+&quot;date&quot;: &quot;2021-09-11T23:00:44.486Z&quot;,
+&quot;from&quot;: &quot;61253747452820828268825011&quot;,
+&quot;to&quot;: &quot;74213041477477406320783754&quot;
+}
+]
+}
+]
+Примечание: данный метод возвращает только последнюю транзакцию из истории транзакций.</p>
+<h3>GET /account/{id}</h3>
+<p>Метод возвращает подробную информацию о счёте пользователя, где {id} в адресе метода — это номер счёта.</p>
+<p>Формат ответа примерно такой:</p>
+<p>[
+{
+&quot;account&quot;: &quot;74213041477477406320783754&quot;,
+&quot;balance&quot;: 0,
+&quot;transactions&quot;: [
+{
+&quot;amount&quot;: 1234,
+&quot;date&quot;: &quot;2021-09-11T23:00:44.486Z&quot;,
+&quot;from&quot;: &quot;61253747452820828268825011&quot;,
+&quot;to&quot;: &quot;74213041477477406320783754&quot;
+}
+]
+}
+]
+Примечание: данный метод возвращает полную историю транзакций по счёту.</p>
+<h3>POST /create-account</h3>
+<p>Метод создаёт для пользователя новый счёт, тело запроса не важно.</p>
+<p>Отвечает объектом с информацией о новом созданном счёте:</p>
+<pre><code>&quot;43123747452820828268825011&quot;: {
+	&quot;account&quot;: &quot;43123747452820828268825011&quot;,
+	&quot;balance&quot;: 0,
+	&quot;mine&quot;: false,
+	&quot;transactions&quot;: []
+},
+</code></pre>
+<h3>POST /transfer-funds</h3>
+<p>Метод перевода средств со счёта на счёт.</p>
+<p>Тело запроса:</p>
+<p>{
+from, // счёт с которого списываются средства
+to, // счёт, на который зачисляются средства
+amount // сумма для перевода
+}
+Метод отвечает объектом счёта, с которого был произведён перевод.</p>
+<p>Возможнные ошибки:</p>
+<p>Invalid account from — не указан адрес счёта списания, или этот счёт не принадлежит нам;
+Invalid account to — не указан счёт зачисления, или этого счёта не существует;
+Invalid amount — не указана сумма перевода, или она отрицательная;
+Overdraft prevented — мы попытались перевести больше денег, чем доступно на счёте списания.</p>
+<h3>GET /all-currencies</h3>
+<p>Метод отвечает массивом со списком кодов всех используемых бекэндом валют на данный момент, например:</p>
+<p>[ 'ETH', 'BTC', 'USD' ]</p>
+<h3>GET /currencies</h3>
+<p>Метод возвращает список валютных счетов текущего пользователя.
+Отвечает объектом с информацией о балансах валютных счетов данного пользователя:</p>
+<p>{
+&quot;AUD&quot;: {
+&quot;amount&quot;: 22.16,
+&quot;code&quot;: &quot;AUD&quot;
+},
+&quot;BTC&quot;: {
+&quot;amount&quot;: 3043.34,
+&quot;code&quot;: &quot;BTC&quot;
+},
+&quot;BYR&quot;: {
+&quot;amount&quot;: 48.75,
+&quot;code&quot;: &quot;BYR&quot;
+},
+}</p>
+<h3>POST /currency-buy</h3>
+<p>Метод совершения валютного обмена.</p>
+<p>Тело запроса:</p>
+<p>{
+from, // код валютного счёта, с которого списываются средства
+to, // код валютного счёта, на который зачисляются средства
+amount // сумма, которая списывается, конвертация вычисляется сервером автоматически, исходя из текущего валютного курса для данной валютной пары
+}
+Метод отвечает объектом с информацией о балансах валютных счетов данного пользователя (см. /currencies).</p>
+<p>Возможнные ошибки:</p>
+<p>Unknown currency code — передан неверный валютный код, код не поддерживается системой (валютный код списания или валютный код зачисления);
+Invalid amount — не указана сумма перевода, или она отрицательная;
+Not enough currency — на валютном счёте списания нет средств; Overdraft prevented — попытка перевести больше, чем доступно на счёте списания.</p>
+<h3>Websocket /currency-feed</h3>
+<p>Это websocket-стрим, который будет выдавать сообщения об изменении курса обмена валют.</p>
+<p>Формат сообщения:</p>
+<p>{
+&quot;type&quot;:&quot;EXCHANGE_RATE_CHANGE&quot;,
+&quot;from&quot;:&quot;NZD&quot;,
+&quot;to&quot;:&quot;CHF&quot;,
+&quot;rate&quot;:62.79,
+&quot;change&quot;:1
+}
+где:</p>
+<p>type — тип сообщения, которое можно использовать, чтобы отфильтровать данное сообщение от любых других типов сообщений, если таковые будут приходить;
+from — код валюты, из которой производится конвертирование;
+to — код валюты, в которую производится конвертирование;
+rate — курс обмена вышеприведённых валют;
+change — изменение курса по отношению к предыдущему значению: 1 — возрастание курса, -1 — убывание курса, 0 — курс не изменился.</p>
+<h3>GET /banks</h3>
+<p>Метод возвращает список точек, отмечающих места банкоматов:</p>
+<p>[
+{ lat: 44.878414, lon: 39.190289 },
+{ lat: 44.6098268, lon: 40.1006606 }
+]
+где lat — широта, lon — долгота.</p></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#authorization">authorization</a></li><li><a href="global.html#autocomplite">autocomplite</a></li><li><a href="global.html#balanceDetails">balanceDetails</a></li><li><a href="global.html#catchErr">catchErr</a></li><li><a href="global.html#createAccount">createAccount</a></li><li><a href="global.html#createChangedCoinCard">createChangedCoinCard</a></li><li><a href="global.html#createDetails">createDetails</a></li><li><a href="global.html#createErrorBox">createErrorBox</a></li><li><a href="global.html#createForm">createForm</a></li><li><a href="global.html#createHeader">createHeader</a></li><li><a href="global.html#createLoader">createLoader</a></li><li><a href="global.html#exchangeCurrency">exchangeCurrency</a></li><li><a href="global.html#getAccount">getAccount</a></li><li><a href="global.html#getAccounts">getAccounts</a></li><li><a href="global.html#getBanks">getBanks</a></li><li><a href="global.html#getChangedCurrency">getChangedCurrency</a></li><li><a href="global.html#getCurrencyAccounts">getCurrencyAccounts</a></li><li><a href="global.html#getDate">getDate</a></li><li><a href="global.html#getKnownCurrwncies">getKnownCurrwncies</a></li><li><a href="global.html#renderAccount">renderAccount</a></li><li><a href="global.html#renderChart">renderChart</a></li><li><a href="global.html#renderCoinTable">renderCoinTable</a></li><li><a href="global.html#renderCurrency">renderCurrency</a></li><li><a href="global.html#renderLogInForm">renderLogInForm</a></li><li><a href="global.html#renderMapOfBanks">renderMapOfBanks</a></li><li><a href="global.html#renderTable">renderTable</a></li><li><a href="global.html#throwErr">throwErr</a></li><li><a href="global.html#transferFunds">transferFunds</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Nov 20 2024 16:13:11 GMT+0300 (Москва, стандартное время)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

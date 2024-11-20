@@ -1,5 +1,10 @@
-import {el, setChildren} from 'redom';
+import {el} from 'redom';
 import { loaderSvg } from './svg';
+
+/**
+ * Функция для создания загрузчика
+ * @returns Loader
+ */
 export function createLoader(){
     const mask = el('div', {class: 'mask'});
     const loader = el('div', {class: 'loader'});
@@ -10,5 +15,5 @@ export function createLoader(){
         mask.classList.add('hide');
     })
     
-    // return mask;
+   
 };

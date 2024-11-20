@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: currency.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: currency.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { getCurrencyAccounts, getChangedCurrency, getKnownCurrwncies,exchangeCurrency } from "./index";
+import { createHeader } from "./header";
+import {el, setChildren} from 'redom';
+import { greenArr, redArr } from "./svg";
+import { createLoader } from "./loader";
+import JustValidate from 'just-validate';
+
+/**
+ * Функция для создания и отображения страницы с информацией о валютах
+ * @param {string} token - токен доступа
+ * @description Создаёт и отображает страницу с информацией о валютах
+ *
+ */
+export async function renderCurrency(token) {
+    document.body.innerHTML = '';
+    createLoader();
+    const header = createHeader(token);
+    const section = el('section', { class: 'section currency__section' });
+    const container = el('div', { class: 'container ' });
+    const title = el('h2', { class: 'title curr__title' }, 'Валютный обмен');
+    const sectiionWrap = el('div', { class: 'curr__wrapper' });
+    const leftWrap = el('div', { class: 'curr__wrapper-left' });
+    const rightWrap = el('div', { class: 'curr__wrapper-right' });
+
+    // Загружаем данные для валютных аккаунтов
+    const $currencyAcc = await getCurrencyAccounts(token);
+    console.log($currencyAcc.data); // Должно вывести массив с валютами
+    const knownCurr = await getKnownCurrwncies();
+    console.log(knownCurr.data); // Должно вывести массив с известными валютами
+
+    const coinCard = renderCoinTable($currencyAcc.data);  
+    const $form = await createForm(token, knownCurr.data); 
+    setChildren(leftWrap, [coinCard, $form]);
+    const changeCard = await createChangedCoinCard();
+    setChildren(rightWrap, changeCard);
+
+    setChildren(sectiionWrap, [leftWrap, rightWrap]);
+    setChildren(container, [title, sectiionWrap]);
+    setChildren(section, container);
+    setChildren(document.body, [header, section]);
+}
+/**
+ * Функция для отображения всех имеющихся валют
+ * @param {Array} coins - массив объектов валют
+ * @description Создаёт карточку отображением валют
+ * @returns Карточку с отображением валют
+ *
+ */
+
+function renderCoinTable(coins) {
+    const coinCard = el('div', { class: "coin__card" });
+    const cardTitle = el('h3', { class: 'coin__card-title' }, 'Ваши валюты');
+    const coinUl = el('ul', { class: 'list-reset coin__ul' });
+
+    
+    coins.forEach(currency => {
+        const listItem = el('li', { class: 'coin__item' }, [
+            el('p', { class: 'coin__currency' }, currency.currency_code),  
+            el('span', { class: 'coin__item-border' }),
+            el('span', { class: 'coin__amount' }, currency.amount)  
+        ]);
+        coinUl.append(listItem);
+    });
+
+    setChildren(coinCard, [cardTitle, coinUl]);
+    return coinCard;
+}
+
+/**
+ * Функция для создания раздела с динамическим отображением изменения валют
+ * 
+ * @description Создаёт карточку с динамическим отображением изменения курса валют
+ * @returns Карточку с изменением курса валют
+ *
+ */
+async function createChangedCoinCard(){
+    const chCurr = await getChangedCurrency();
+    const card = el('div', {class: 'change__card'});
+    const title = el('h3', {class: 'change__title'}, 'Изменение курсов в реальном времени');
+    const ul = el('ul', {class:'list-reset change__ul'});
+    let coinsArr = [];
+   
+    chCurr.onmessage = (event) =>{
+        const coin = JSON.parse(event.data)
+        coinsArr.push(coin);
+   
+        
+        for(const i of coinsArr){
+            
+            if(ul.childNodes.length &lt;22){
+                //Для статического отображения
+               
+                const li = el('li', {class: 'change__item'})
+                const coinPare = el('p', {class:'coin__currency'}, `${i.from}/${i.to}`);
+                const coinBorder = el('span',{class:'coin__item-border'});
+                const coinRate = el('span', {class:'coin__amount --ch_card-amount'}, `${i.rate}`);
+                const coinSvg = el('span', {class:'coin__svg'});
+                if(i.change &lt;0){
+                    coinBorder.classList.add('red__border');
+                    coinSvg.innerHTML = redArr;
+                }else{
+                    coinBorder.classList.add('green__border');
+                    coinSvg.innerHTML = greenArr;
+                }
+               
+                coinRate.append(coinSvg);
+                setChildren(li, [coinPare, coinBorder, coinRate])
+                ul.append(li);
+            }
+            else{
+                //Для динамического отображения
+                // ul.removeChild(ul.childNodes[0]); 
+                // const li = el('li', {class: 'change__item'})
+                // const coinPare = el('p', {class:'coin__currency'}, `${i.from}/${i.to}`);
+                // const coinBorder = el('span',{class:'coin__item-border'});
+                // const coinRate = el('span', {class:'coin__amount --ch_card-amount'}, `${i.rate}`);
+                // const coinSvg = el('span', {class:'coin__svg'});
+                // if(i.change &lt;0){
+                //     coinBorder.classList.add('red__border');
+                //     coinSvg.innerHTML = redArr;
+                // }else{
+                //     coinBorder.classList.add('green__border');
+                //     coinSvg.innerHTML = greenArr;
+                // }
+               
+                // coinRate.append(coinSvg);
+                // setChildren(li, [coinPare, coinBorder, coinRate])
+                // ul.append(li);
+
+                break;
+            } 
+            
+        }
+    }
+       
+        setChildren(card, [title, ul])
+        
+        
+    
+    return card;
+
+}
+/**
+ * Функция для создания формы отбмена валют
+ * @param {Array} knownCurr - массив объектов валют
+ * @description Создаёт форму отбмена валют
+ * @returns Форму отбмена валют
+ *
+ */
+async function createForm(token, knownCurr){
+    const form = el('form', {class: 'coin__form'});
+    const frmTitle = el('h3', {class: 'coin__formtitle'}, 'Обмен валют');
+    const selectWrapper = el('div' ,{class: 'coin__select-wraper'});
+    const formWrapper = el('div' ,{class: 'coin__form-wraper'});
+    const btnWrapper = el('div' ,{class: 'coin__btn-wraper'});
+    const selectGroup1 = el('div', {class: 'coin__select-group'});
+    const selectGroup2 = el('div', {class: 'coin__select-group'});
+    const selectLabelFrom = el('label', {class: 'coin__select-label'}, 'Из');
+    const selectFrom = el('select', {class: 'coin__select'});
+    const selectLabelTo = el('label', {class: 'coin__select-label'}, 'В');
+    const selectTo = el('select', {class: 'coin__select'});
+    for(let i = 0; i&lt;knownCurr.length; i++){
+        selectFrom.append(new Option(`${knownCurr[i]}`,`${knownCurr[i]}` ));
+        selectTo.append(new Option(`${knownCurr[i]}`,`${knownCurr[i]}` ));
+    }
+    
+    const inputGroup = el('div', {class:'coin__input-group'});
+    const inputLabel = el('label', {class: 'coin__input-label coin__select-label'}, 'Сумма')
+    
+    const inputWrapper = el('div', {class: 'input__wrapper'});
+    const sumInput = el('input', {class:'coin__sum-input'});
+    setChildren(inputWrapper, sumInput);
+    const formBtn = el('button', {class: 'btn coin__form-btn'}, 'Обменять');
+    const validation = new JustValidate(form);
+    validation
+    .addField(sumInput, [
+        {
+            rule: 'minLength',
+            value: 1,
+            errorMessage: 'Введите сумму',
+           
+        },
+        {
+            validator: (value) => {
+                if(value > 0){
+                    sumInput.classList.remove('error')
+                    return value;
+                  }else{
+                    sumInput.classList.add('error')
+                    
+                  }
+            },
+            
+            errorMessage: 'Введите сумму',
+        },
+        {
+            validator: (value) => {
+              if(!value.includes('-')){
+                sumInput.classList.remove('error')
+                return value;
+              }else{
+                sumInput.classList.add('error')
+                
+              }
+              
+            },
+            
+            errorMessage: 'Введите положительную сумму',
+        },
+
+    ])
+
+
+    form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const res = await exchangeCurrency(selectFrom.value, selectTo.value, sumInput.value, token);
+        console.log(selectFrom.value, selectTo.value, sumInput.value, token)
+        const $curACC = await getCurrencyAccounts(token);
+        renderCoinTable($curACC.data);
+        renderCurrency(token)
+        console.log(res.payload);
+    })
+    
+    setChildren(inputGroup, [inputLabel, inputWrapper]);
+    setChildren(selectGroup1 ,[selectLabelFrom, selectFrom]);
+    setChildren(selectGroup2 ,[selectLabelTo, selectTo]);
+    setChildren(selectWrapper, [selectGroup1, selectGroup2]);
+    setChildren(formWrapper, [selectWrapper, inputGroup]);
+    setChildren(btnWrapper ,[formWrapper, formBtn]);
+    setChildren(form, [frmTitle, btnWrapper]);
+
+    return form
+
+
+
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#authorization">authorization</a></li><li><a href="global.html#autocomplite">autocomplite</a></li><li><a href="global.html#balanceDetails">balanceDetails</a></li><li><a href="global.html#catchErr">catchErr</a></li><li><a href="global.html#createAccount">createAccount</a></li><li><a href="global.html#createChangedCoinCard">createChangedCoinCard</a></li><li><a href="global.html#createDetails">createDetails</a></li><li><a href="global.html#createErrorBox">createErrorBox</a></li><li><a href="global.html#createForm">createForm</a></li><li><a href="global.html#createHeader">createHeader</a></li><li><a href="global.html#createLoader">createLoader</a></li><li><a href="global.html#exchangeCurrency">exchangeCurrency</a></li><li><a href="global.html#getAccount">getAccount</a></li><li><a href="global.html#getAccounts">getAccounts</a></li><li><a href="global.html#getBanks">getBanks</a></li><li><a href="global.html#getChangedCurrency">getChangedCurrency</a></li><li><a href="global.html#getCurrencyAccounts">getCurrencyAccounts</a></li><li><a href="global.html#getDate">getDate</a></li><li><a href="global.html#getKnownCurrwncies">getKnownCurrwncies</a></li><li><a href="global.html#renderAccount">renderAccount</a></li><li><a href="global.html#renderChart">renderChart</a></li><li><a href="global.html#renderCoinTable">renderCoinTable</a></li><li><a href="global.html#renderCurrency">renderCurrency</a></li><li><a href="global.html#renderLogInForm">renderLogInForm</a></li><li><a href="global.html#renderMapOfBanks">renderMapOfBanks</a></li><li><a href="global.html#renderTable">renderTable</a></li><li><a href="global.html#throwErr">throwErr</a></li><li><a href="global.html#transferFunds">transferFunds</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Nov 20 2024 16:13:11 GMT+0300 (Москва, стандартное время)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

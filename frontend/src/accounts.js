@@ -5,17 +5,25 @@ import { createDetails } from "./detailAcc";
 import { createLoader } from "./loader";
 import { getDate } from "./index";
 
-
+/**
+ * Функция для отображения страницы со счетами 
+ * @param {string} token - токен доступа
+ * @description Отображает страницу со счетами
+ *
+ */
 export async function renderAccount(token) {
 
-    let sortFlag = ''
+  
     const accounts = await getAccounts(token);
-    // accounts.payload = accounts.payload.sort(function (a, b) {
-    //     if (a[sortFlag] < b[sortFlag]) return -1;
-
-    // })
+   
     console.log(accounts.data);
-
+    /**
+        * Функция для создания страницы со счетами 
+        * @param {string} token - токен доступа
+        * @param {Array} accounts - массив объектов счетов
+        * @description Создаёт страницу со счетами
+        *
+    */
     async function createAcc(accounts, token) {
 
         document.body.innerHTML = '';

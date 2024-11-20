@@ -5,6 +5,12 @@ import { greenArr, redArr } from "./svg";
 import { createLoader } from "./loader";
 import JustValidate from 'just-validate';
 
+/**
+ * Функция для создания и отображения страницы с информацией о валютах
+ * @param {string} token - токен доступа
+ * @description Создаёт и отображает страницу с информацией о валютах
+ *
+ */
 export async function renderCurrency(token) {
     document.body.innerHTML = '';
     createLoader();
@@ -22,8 +28,8 @@ export async function renderCurrency(token) {
     const knownCurr = await getKnownCurrwncies();
     console.log(knownCurr.data); // Должно вывести массив с известными валютами
 
-    const coinCard = renderCoinTable($currencyAcc.data);  // Используем data вместо payload
-    const $form = await createForm(token, knownCurr.data); // Используем data вместо payload
+    const coinCard = renderCoinTable($currencyAcc.data);  
+    const $form = await createForm(token, knownCurr.data); 
     setChildren(leftWrap, [coinCard, $form]);
     const changeCard = await createChangedCoinCard();
     setChildren(rightWrap, changeCard);
@@ -33,19 +39,25 @@ export async function renderCurrency(token) {
     setChildren(section, container);
     setChildren(document.body, [header, section]);
 }
-
+/**
+ * Функция для отображения всех имеющихся валют
+ * @param {Array} coins - массив объектов валют
+ * @description Создаёт карточку отображением валют
+ * @returns Карточку с отображением валют
+ *
+ */
 
 function renderCoinTable(coins) {
     const coinCard = el('div', { class: "coin__card" });
     const cardTitle = el('h3', { class: 'coin__card-title' }, 'Ваши валюты');
     const coinUl = el('ul', { class: 'list-reset coin__ul' });
 
-    // Динамически отображаем валюты на основе данных, переданных с бэкенда
+    
     coins.forEach(currency => {
         const listItem = el('li', { class: 'coin__item' }, [
-            el('p', { class: 'coin__currency' }, currency.currency_code),  // Используем currency_code для кода валюты
+            el('p', { class: 'coin__currency' }, currency.currency_code),  
             el('span', { class: 'coin__item-border' }),
-            el('span', { class: 'coin__amount' }, currency.amount)  // Используем amount для суммы
+            el('span', { class: 'coin__amount' }, currency.amount)  
         ]);
         coinUl.append(listItem);
     });
@@ -54,7 +66,13 @@ function renderCoinTable(coins) {
     return coinCard;
 }
 
-
+/**
+ * Функция для создания раздела с динамическим отображением изменения валют
+ * 
+ * @description Создаёт карточку с динамическим отображением изменения курса валют
+ * @returns Карточку с изменением курса валют
+ *
+ */
 async function createChangedCoinCard(){
     const chCurr = await getChangedCurrency();
     const card = el('div', {class: 'change__card'});
@@ -66,11 +84,12 @@ async function createChangedCoinCard(){
         const coin = JSON.parse(event.data)
         coinsArr.push(coin);
    
-        // let cnt = 0;
+        
         for(const i of coinsArr){
-            //cnt++;
+            
             if(ul.childNodes.length <22){
-                // console.log("i "+ i.to);
+                //Для статического отображения
+               
                 const li = el('li', {class: 'change__item'})
                 const coinPare = el('p', {class:'coin__currency'}, `${i.from}/${i.to}`);
                 const coinBorder = el('span',{class:'coin__item-border'});
@@ -89,6 +108,7 @@ async function createChangedCoinCard(){
                 ul.append(li);
             }
             else{
+                //Для динамического отображения
                 // ul.removeChild(ul.childNodes[0]); 
                 // const li = el('li', {class: 'change__item'})
                 // const coinPare = el('p', {class:'coin__currency'}, `${i.from}/${i.to}`);
@@ -120,6 +140,13 @@ async function createChangedCoinCard(){
     return card;
 
 }
+/**
+ * Функция для создания формы отбмена валют
+ * @param {Array} knownCurr - массив объектов валют
+ * @description Создаёт форму отбмена валют
+ * @returns Форму отбмена валют
+ *
+ */
 async function createForm(token, knownCurr){
     const form = el('form', {class: 'coin__form'});
     const frmTitle = el('h3', {class: 'coin__formtitle'}, 'Обмен валют');
@@ -189,7 +216,6 @@ async function createForm(token, knownCurr){
         const res = await exchangeCurrency(selectFrom.value, selectTo.value, sumInput.value, token);
         console.log(selectFrom.value, selectTo.value, sumInput.value, token)
         const $curACC = await getCurrencyAccounts(token);
-        // console.log($curACC.data); // Должно вывести массив с валютами
         renderCoinTable($curACC.data);
         renderCurrency(token)
         console.log(res.payload);

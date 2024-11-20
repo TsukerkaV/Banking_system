@@ -7,6 +7,14 @@ import { createLoader } from "./loader";
 import JustValidate from 'just-validate';
 import Chart from 'chart.js/auto';
 
+/**
+ * Функция для создания и отображения страницы с детальной информацией о счёте
+ * @param {string} token - токен доступа
+ * @param {number} id - номер счета
+ * @description Отображает страницу с детальной информацией о счёте и графиком со статистики баланса
+ *
+ */
+
 export async function createDetails(id, token){
     let data = localStorage.getItem('numbsList');
     let numbsList = [];
@@ -70,7 +78,6 @@ export async function createDetails(id, token){
     setChildren(statWrapper, [detailForm, chartWrapper]);
     const tableWrapper = el('div', {class: 'details__wrapper-table'});
     const tableTitle = el('h2', {class:'title table__title '}, 'История переводов');
-    // const $table = renderTable(thisAcc.data.transaction_id, id);
     const $table = renderTable(thisAcc.data.transactions, id);
     tableWrapper.append(tableTitle, $table)
     tableWrapper.addEventListener('click', (e)=>{
@@ -157,7 +164,14 @@ export async function createDetails(id, token){
     })
 
 }
-
+/**
+ * Функция для автодополнения при вводе счёта
+ * @param {Array} numbsList - список вводимых счетов
+ * @param {HTMLDivElement} inner - элемент для отображения списка вводимых счетов
+ * @param {HTMLInputElement} input - input для ввода счёта
+ * 
+ *
+ */
 function autocomplite(numbsList, inner, input){
     
     const $findList = document.createElement('ul');
@@ -228,7 +242,13 @@ function autocomplite(numbsList, inner, input){
     })
   
 }
-
+/**
+ * Функция для создания таблицы с транзакциями
+ * @param {Array} transactions - массив объектов транзакций
+ * @param {number} id - номер счёта
+ * 
+ *
+ */
 export function renderTable(transactions, id){
     const table = el('table', {class:'table details__table', id:'details__table'});
     const tHead = el('thead', {class: 'thead details__thead'}, [
@@ -265,6 +285,14 @@ export function renderTable(transactions, id){
     setChildren(table, [tHead, tBody]);
     return table;
 }
+/**
+ * Функция для создания графика статистики баланса за 6 месяцев
+ * @param {Array} transactions - массив транзакций для конкретного счета
+ * @param {number} id - номер счета
+ * @param {Object} balance - объект баланса
+ * @description Строит график статистики баланса за 6 месяцев
+ *
+ */
 function renderChart(transactions, balance, id){
     const canvasWrapper = el('div', {class:'canvas__wrapper'});
     canvasWrapper.style.width = '500px'
@@ -280,8 +308,7 @@ function renderChart(transactions, balance, id){
     for(const transaction of transactions){
         let dat = new Date(transaction.date);
         let mm = dat.getMonth()+1;
-        // let now = new Date();
-        // let nowMonth = now.getMonth()+1
+       
         monthArr.push(mm);
         switch(mm){
             case 2:{
