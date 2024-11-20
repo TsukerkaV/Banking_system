@@ -1,14 +1,26 @@
+/**
+ * @module BankingServer
+ * @description Сервер для банковской системы, реализованный на Express и PostgreSQL.
+ * @requires express
+ * @requires cors
+ * @requires body-parser
+ * @requires pg
+ * @requires ./utils.js
+ */
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
-const { formatAmount, generateAccountId, response } = require('./utils.js'); // Подключение утилит
+const { formatAmount, generateAccountId, response } = require('./utils.js');
 
-// Подключение к базе данных PostgreSQL
+/**
+ * Подключение к базе данных PostgreSQL.
+ */
 const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
-  database: 'Bank_system', // Название вашей базы данных
+  database: 'Bank_system',
   password: 'postgres',
   port: 5432,
 });
@@ -30,7 +42,13 @@ const KNOWN_CURRENCY_CODES = Object.freeze([
 
 let currencyFeedSubscribers = [];
 
-// Вспомогательная функция для выполнения запросов к базе данных
+/**
+ * Выполняет SQL-запрос к базе данных.
+ * @async
+ * @param {string} query - SQL-запрос.
+ * @param {Array} [params=[]] - Параметры для запроса.
+ * @returns {Promise<Array>} Результат выполнения запроса в виде массива строк.
+ */
 async function queryDB(query, params = []) {
   const client = await pool.connect();
   try {
@@ -41,7 +59,13 @@ async function queryDB(query, params = []) {
   }
 }
 
-// Middleware для проверки авторизации
+/**
+ * Middleware для проверки авторизации.
+ * Проверяет наличие и корректность заголовка авторизации.
+ * @param {Object} req - Объект запроса.
+ * @param {Object} res - Объект ответа.
+ * @param {Function} next - Функция для передачи управления следующему middleware.
+ */
 function authCheck(req, res, next) {
   if (req.headers.authorization !== `Basic ${AUTH_DATA.token}`) {
     res.json({ success: false, error: 'Unauthorized' });
@@ -50,16 +74,26 @@ function authCheck(req, res, next) {
   next();
 }
 
-// Настройка CORS и JSON парсера
 app.use(cors());
 app.use(bodyParser.json());
 
-// Маршрут проверки работы сервера
+/**
+ * Эндпоинт для проверки работоспособности сервера.
+ * @route GET /
+ * @returns {string} Строка подтверждения, что сервер работает.
+ */
 app.get('/', (req, res) => {
   res.send('Backend is working');
 });
 
-// Эндпоинт для авторизации
+/**
+ * Эндпоинт для авторизации пользователя.
+ * Проверяет логин и пароль и возвращает токен при успешной авторизации.
+ * @route POST /login
+ * @param {string} req.body.login - Логин пользователя.
+ * @param {string} req.body.password - Пароль пользователя.
+ * @returns {Object} Объект с результатом авторизации и токеном или сообщением об ошибке.
+ */
 app.post('/login', (req, res) => {
   const { login, password } = req.body || {};
 
@@ -70,7 +104,13 @@ app.post('/login', (req, res) => {
   }
 });
 
-// Эндпоинт для получения аккаунтов
+/**
+ * Эндпоинт для получения всех аккаунтов пользователя.
+ * Возвращает список всех счетов, принадлежащих пользователю.
+ * @route GET /accounts
+ * @middleware authCheck
+ * @returns {Object} Объект с данными аккаунтов или сообщением об ошибке.
+ */
 app.get('/accounts', authCheck, async (req, res) => {
   try {
     const myAccounts = await queryDB("SELECT * FROM accounts WHERE mine = true");
@@ -80,25 +120,28 @@ app.get('/accounts', authCheck, async (req, res) => {
   }
 });
 
-// Эндпоинт для получения конкретного аккаунта по ID
+/**
+ * Эндпоинт для получения информации о конкретном счете по ID.
+ * Возвращает информацию о балансе, владельце и транзакциях счета.
+ * @route GET /account/:id
+ * @middleware authCheck
+ * @param {string} req.params.id - ID счета.
+ * @returns {Object} Объект с данными счета или сообщением об ошибке.
+ */
 app.get('/account/:id', authCheck, async (req, res) => {
   const { id } = req.params;
   try {
-    // Получаем информацию о счете
     const account = await queryDB("SELECT * FROM accounts WHERE account_id = $1", [id]);
-    
-    // Проверка, существует ли аккаунт
+
     if (account.length === 0) {
       return res.json({ success: false, error: 'No such account' });
     }
 
-    // Получаем все транзакции для указанного аккаунта
     const transactions = await queryDB(
       "SELECT * FROM transactions WHERE from_account = $1 OR to_account = $1 ORDER BY date",
       [id]
     );
 
-    // Формируем ответ в нужном формате
     const responseData = {
       account_id: account[0].account_id,
       balance: account[0].balance,
@@ -117,8 +160,13 @@ app.get('/account/:id', authCheck, async (req, res) => {
   }
 });
 
-
-// Эндпоинт для создания нового аккаунта
+/**
+ * Эндпоинт для создания нового счета.
+ * Создает новый счет для пользователя с нулевым балансом.
+ * @route POST /create-account
+ * @middleware authCheck
+ * @returns {Object} Объект с информацией о новом счете или сообщением об ошибке.
+ */
 app.post('/create-account', authCheck, async (req, res) => {
   const newAccountId = generateAccountId();
   try {
@@ -129,7 +177,16 @@ app.post('/create-account', authCheck, async (req, res) => {
   }
 });
 
-// Эндпоинт для перевода средств между аккаунтами
+/**
+ * Эндпоинт для перевода средств между аккаунтами.
+ * Переводит указанную сумму с одного счета на другой.
+ * @route POST /transfer-funds
+ * @middleware authCheck
+ * @param {string} req.body.from - ID счета-отправителя.
+ * @param {string} req.body.to - ID счета-получателя.
+ * @param {number} req.body.amount - Сумма перевода.
+ * @returns {Object} Результат операции или сообщение об ошибке.
+ */
 app.post('/transfer-funds', authCheck, async (req, res) => {
   const { from, to, amount: rawAmount } = req.body;
   const amount = Number(rawAmount);
@@ -168,32 +225,38 @@ app.post('/transfer-funds', authCheck, async (req, res) => {
   }
 });
 
-// Эндпоинт для получения всех известных валют
+/**
+ * Эндпоинт для получения списка всех известных валют.
+ * Возвращает список валютных кодов, поддерживаемых системой.
+ * @route GET /all-currencies
+ * @returns {Object} Список валютных кодов.
+ */
 app.get('/all-currencies', (req, res) => {
   res.json({ success: true, data: KNOWN_CURRENCY_CODES });
 });
 
-// Эндпоинт для WebSocket подписки на обновления валютных курсов
+/**
+ * Эндпоинт для WebSocket подписки на обновления валютных курсов.
+ * Обновляет курсы валют для подписчиков каждые 2 секунды.
+ * @route WS /currency-feed
+ * @param {WebSocket} ws - WebSocket-соединение.
+ */
 app.ws('/currency-feed', (ws, req) => {
   currencyFeedSubscribers.push(ws);
 
-  // Устанавливаем интервал для отправки актуальных данных из базы данных
   const sendCurrencyUpdates = setInterval(async () => {
     try {
-      // Извлекаем все данные из таблицы exchange_rates
       const exchangeRates = await queryDB("SELECT currency_pair, rate FROM exchange_rates");
 
-      // Преобразуем данные в нужный формат для клиента
       exchangeRates.forEach(rateData => {
         const [from, to] = rateData.currency_pair.split('/');
         const dataToSend = {
           from,
           to,
           rate: rateData.rate,
-          change: Math.random() > 0.5 ? 1 : -1  // Примерное изменение курса для демонстрации
+          change: Math.random() > 0.5 ? 1 : -1 // Примерное изменение курса для демонстрации
         };
 
-        // Отправляем данные всем подписчикам
         currencyFeedSubscribers.forEach(subscriber => {
           if (subscriber.readyState === ws.OPEN) {
             subscriber.send(JSON.stringify(dataToSend));
@@ -203,7 +266,7 @@ app.ws('/currency-feed', (ws, req) => {
     } catch (error) {
       console.error("Ошибка при получении курсов валют из базы данных:", error);
     }
-  }, 2000); // Обновляем данные каждые 2 секунды
+  }, 2000);
 
   ws.on('close', () => {
     clearInterval(sendCurrencyUpdates);
@@ -211,8 +274,13 @@ app.ws('/currency-feed', (ws, req) => {
   });
 });
 
-
-// Эндпоинт для получения валют пользователя
+/**
+ * Эндпоинт для получения валют пользователя.
+ * Возвращает список валют и их количества для текущего пользователя.
+ * @route GET /currencies
+ * @middleware authCheck
+ * @returns {Object} Список валют пользователя или сообщение об ошибке.
+ */
 app.get('/currencies', authCheck, async (req, res) => {
   try {
     const currencies = await queryDB("SELECT * FROM currencies ORDER BY currency_code ASC");
@@ -222,7 +290,16 @@ app.get('/currencies', authCheck, async (req, res) => {
   }
 });
 
-// Эндпоинт для покупки валюты
+/**
+ * Эндпоинт для покупки валюты.
+ * Выполняет обмен указанной суммы из одной валюты в другую по текущему курсу.
+ * @route POST /currency-buy
+ * @middleware authCheck
+ * @param {string} req.body.from - Код исходной валюты.
+ * @param {string} req.body.to - Код целевой валюты.
+ * @param {number} req.body.amount - Сумма исходной валюты для обмена.
+ * @returns {Object} Результат операции или сообщение об ошибке.
+ */
 app.post('/currency-buy', authCheck, async (req, res) => {
   const { from, to, amount: rawAmount } = req.body;
   const amount = Number(rawAmount);
@@ -258,7 +335,12 @@ app.post('/currency-buy', authCheck, async (req, res) => {
   }
 });
 
-// Эндпоинт для получения списка банков
+/**
+ * Эндпоинт для получения списка банков.
+ * Возвращает список координат местоположения банковских филиалов.
+ * @route GET /banks
+ * @returns {Object} Список банковских координат.
+ */
 app.get('/banks', (req, res) => {
   const POINTS_LIST = Object.freeze([
     { lat: 44.878414, lon: 39.190289 },
@@ -298,32 +380,30 @@ app.get('/banks', (req, res) => {
   res.json({ success: true, data: POINTS_LIST });
 });
 
-// Обработка неправильных маршрутов
+/**
+ * Обработка неправильных маршрутов.
+ * Возвращает сообщение об ошибке при попытке доступа к несуществующему маршруту.
+ * @route POST *
+ * @returns {Object} Сообщение об ошибке.
+ */
 app.post('*', (req, res) => {
   res.json({ success: false, error: 'Invalid route' });
 });
 
-// Запуск сервера
-app.listen(port, () => {
-  console.log(`Сервер запущен по адресу http://localhost:${port}`);
-});
-
-// Пример функции для получения курса обмена
+/**
+ * Функция для получения курса обмена валют.
+ * Выполняет поиск курса обмена между двумя валютами в таблице exchange_rates.
+ * @param {string} from - Код исходной валюты.
+ * @param {string} to - Код целевой валюты.
+ * @returns {number} Курс обмена или 1, если курс не найден.
+ */
 async function getExchangeRate(from, to) {
   try {
-    // Создаем строку вида "AUD/BTC" для поиска в столбце currency_pair
     const currencyPair = `${from}/${to}`;
-    
-    const result = await queryDB(
-      "SELECT rate FROM exchange_rates WHERE currency_pair = $1",
-      [currencyPair]
-    );
-    
-    return result.length > 0 ? result[0].rate : 1; // Возвращаем 1, если курс не найден
+    const result = await queryDB("SELECT rate FROM exchange_rates WHERE currency_pair = $1", [currencyPair]);
+    return result.length > 0 ? result[0].rate : 1;
   } catch (error) {
     console.error("Ошибка при получении курса обмена:", error);
-    return 1; // В случае ошибки возвращаем курс 1
+    return 1;
   }
 }
-
-
